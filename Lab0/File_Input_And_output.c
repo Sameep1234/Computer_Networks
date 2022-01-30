@@ -24,29 +24,34 @@ int main(int argc, char **argv)
     {
         switch(c)
         {
-            case 'i':
-                fileName = optarg;
+            case 'i': /* Optional argument for input filename */
+                fileName = optarg; /* Store the input filename */
                 break;
-            case 'o':
-                outputFileName = optarg;
+            case 'o': /* Optional argument for output filename */
+                outputFileName = optarg; /* Store the output filename */
                 break;
             default:
                 break;
         }
     }
-    /* Opening source file in read mode*/
+    /* Opening source file in read mode */
     src = fopen(fileName, "r");
     if (src == NULL)
     {
         printf("File not found. Exiting.\n");
         exit(EXIT_FAILURE);
     }
+
     /* Read src until end-of-file char is encountered */
+    /* Open Output file in write mode */
     FILE *outputFilePointer = fopen(outputFileName, "w");
     while ((c = fgetc(src)) != EOF)
     {
+        /* Write individual char to the output file */
         fprintf(outputFilePointer, "%c", c);
     }
+
+    /* Close all the files. */
     fclose(outputFilePointer);
     fclose(src);
     return 0;
