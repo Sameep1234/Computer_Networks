@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     }
     /* Opening source file in read mode */
     src = fopen(fileName, "r");
+
+    /* Display error when file is not found or does not exist. */
     if (src == NULL)
     {
         printf("File not found. Exiting.\n");
