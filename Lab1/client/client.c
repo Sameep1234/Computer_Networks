@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define SERVER_PORT 5432
+#define SERVER_PORT 8089
 #define MAX_LINE 256
 
 int main(int argc, char *argv[])

@@ -2,8 +2,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
-#define SERVER_PORT 5432
+#define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define MAX_LINE 256
 
@@ -16,7 +17,8 @@ int main()
     /* build address data structure */
     bzero((char *)&sin, sizeof(sin));
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
+    /* Connect to any ip address where server.c is running */
+    sin.sin_addr.s_addr = inet_addr("0.0.0.0");
     sin.sin_port = htons(SERVER_PORT);
     /* setup passive open */
     if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0)
