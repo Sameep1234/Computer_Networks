@@ -6,7 +6,7 @@
     * buffer
     * sockets (old and new)
     * Initialize the structure
-    * Modify address and port (using htons() function)
+    * Modify address, address_family and port (using htons() function)
     * Create a socket
     * Bind the socket with address and port
     * listen to each socket

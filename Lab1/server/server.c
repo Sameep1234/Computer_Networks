@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -7,41 +10,75 @@
 #define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define MAX_LINE 256
+#define SERVER_IP "127.0.0.1"
+
+void handle_error(char *error_msg)
+{
+    perror(error_msg);
+    exit(EXIT_FAILURE);
+}
 
 int main()
 {
     struct sockaddr_in sin;
-    char buf[MAX_LINE];
-    int len;
-    int s, new_s;
-    /* build address data structure */
-    bzero((char *)&sin, sizeof(sin));
-    sin.sin_family = AF_INET;
-    /* Connect to any ip address where server.c is running */
-    sin.sin_addr.s_addr = inet_addr("0.0.0.0");
-    sin.sin_port = htons(SERVER_PORT);
-    /* setup passive open */
-    if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    char buf[MAX_LINE]; // Buffer
+    int sockfd, new_sockfd; // Sockets
+    int len; // For storing the length of the msg
+    bzero((char *) &sin, sizeof(sin)); // Initialize structure
+
+    /* Modify required variables */
+    sin.sin_family = AF_INET; // Address Family, Internet
+    sin.sin_addr.s_addr = inet_addr(SERVER_IP); // Ip Address in network format
+    sin.sin_port = htons(SERVER_PORT); // Port in network format
+
+    /* Create a socket */
+    sockfd = socket(PF_INET, SOCK_STREAM, 0);
+    if(sockfd < 0) // Check for error
     {
-        perror("simplex-talk: socket");
-        exit(1);
+        handle_error("Socket Failed");
     }
-    if ((bind(s, (struct sockaddr *)&sin, sizeof(sin))) < 0)
+
+    /* Bind the socket with particular port and address */
+    if(bind(sockfd, (struct sockaddr_in *) &sin, sizeof(sin)) < 0)
     {
-        perror("simplex-talk: bind");
-        exit(1);
+        handle_error("Bind Failed");
     }
-    listen(s, MAX_PENDING);
-    /* wait for connection, then receive and print text */
-    while (1)
+
+    /* Mark socket as passive listening using listen() */
+    int error_check = listen(sockfd, MAX_PENDING);
+    if(error_check < 0) // Check for error
     {
-        if ((new_s = accept(s, (struct sockaddr *)&sin, &len)) < 0)
+        handle_error("Listen Failed");
+    }
+
+    /* Accept the incoming requests */
+    while(1)
+    {
+        new_sockfd = accept(sockfd, (struct sockaddr_in *) &sin, &len);
+        if(new_sockfd < 0) // Error Check
         {
-            perror("simplex-talk: accept");
-            exit(1);
+            handle_error("Accept Failed");
         }
-        while (len = recv(new_s, buf, sizeof(buf), 0))
-            fputs(buf, stdout);
-        close(new_s);
+
+        /* Send "Hello" from server */
+        char *initial_greetings = "Hello";
+        if(send(new_sockfd, initial_greetings, strlen(initial_greetings), 0) < 0)
+        {
+            handle_error("Send Failed");
+        }
+
+        /* Recieve request from client */
+        while(len = recv(new_sockfd, buf, sizeof(buf), 0))
+        {
+            if(buf[0] == 'B' && buf[1] == 'y', buf[2] == 'e') // Terminate the socket if client says bye.
+            {
+                close(new_sockfd);
+            }
+            else
+            {
+                fputs(buf, stdout);
+            }
+        }
     }
+    return 0;
 }
