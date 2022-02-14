@@ -79,6 +79,8 @@ int main()
             else
             {
                 fputs(buf, stdout);
+                char *temp = buf;
+                printf("%d %ld\n", len, strlen(temp));
             }
         }
     }

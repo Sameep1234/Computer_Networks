@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
         send(sockfd, buf, len, 0);
 
         /* Recieve the response sent from the server */
-        recv(sockfd, buf, sizeof(buf), 0);
-        fputs(buf, stdout);
-        printf("\n");
+        // recv(sockfd, buf, sizeof(buf), 0);
+        // fputs(buf, stdout);
+        // printf("\n");
     }
 
     return 0;
