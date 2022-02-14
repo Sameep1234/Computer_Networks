@@ -62,7 +62,7 @@ int main()
 
         /* Send "Hello" from server */
         char *initial_greetings = "Hello";
-        if(send(new_sockfd, initial_greetings, strlen(initial_greetings), 0) < 0)
+        if(send(new_sockfd, initial_greetings, sizeof(buf), 0) < 0)
         {
             handle_error("Send Failed");
         }
@@ -72,7 +72,9 @@ int main()
         {
             if(buf[0] == 'B' && buf[1] == 'y', buf[2] == 'e') // Terminate the socket if client says bye.
             {
+                printf("Bye: Closing Connection\n");
                 close(new_sockfd);
+                break;
             }
             else
             {
