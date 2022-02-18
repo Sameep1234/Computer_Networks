@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/sendfile.h>
 #define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define MAX_LINE 256
@@ -78,9 +79,27 @@ int main()
             }
             else
             {
-                fputs(buf, stdout);
-                char *temp = buf;
-                printf("%d %ld\n", len, strlen(temp));
+                char *fileName = buf;
+                FILE *fp = fopen(fileName, "r");
+                fread(fp, BUFSIZ, )
+                if(fp < 0)
+                {
+                    char *file_not_found = "File not found";
+                    if (send(new_sockfd, file_not_found, sizeof(buf), 0) < 0)
+                    {
+                        handle_error("Sending File Failed!");
+                    }
+                }
+                else
+                {
+                    char *ok = "OK";
+                    if(send(new_sockfd, ok, sizeof(buf), 0) < 0)
+                    {
+                        handle_error("Sending Ok Failed!");
+                    }
+
+                    
+                }
             }
         }
     }

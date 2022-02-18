@@ -19,6 +19,7 @@ void handle_error(char *error_msg)
 
 int main(int argc, char *argv[])
 {
+    FILE *fp;
     struct hostent *hp; // Create hostent Structure
     int sockfd; // Socket file descriptor
     char buf[MAX_LINE]; // Create buffer
@@ -71,11 +72,23 @@ int main(int argc, char *argv[])
         buf[MAX_LINE - 1] = '\0';
         int len = strlen(buf) + 1;
         send(sockfd, buf, len, 0);
+        char *fileName = buf;
 
         /* Recieve the response sent from the server */
-        // recv(sockfd, buf, sizeof(buf), 0);
-        // fputs(buf, stdout);
-        // printf("\n");
+        len = recv(sockfd, buf, sizeof(buf), 0);
+        fputs(buf, stdout);
+        printf("\n");
+
+        if(buf[0] == 'O' && buf[1] == 'K')
+        {
+            len = recv(sockfd, buf, BUFSIZ, 0);
+            if(len < 0)
+            {
+                handle_error("File Recieving Failed!");
+            }
+            fp = fopen(fileName, "w");
+            fwrite(buf, sizeof(char), len, fp);
+        }
     }
 
     return 0;
