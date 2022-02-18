@@ -7,6 +7,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <fcntl.h>
 #define SERVER_PORT 8089
 #define MAX_LINE 256
 
@@ -19,10 +23,10 @@ void handle_error(char *error_msg)
 
 int main(int argc, char *argv[])
 {
-    FILE *fp;
+    int fd;
     struct hostent *hp; // Create hostent Structure
     int sockfd; // Socket file descriptor
-    char buf[MAX_LINE]; // Create buffer
+    char buf[BUFSIZ]; // Create buffer
     struct sockaddr_in sin; // Structure for sockaddr_in
     char *host; // Host
 
@@ -75,7 +79,7 @@ int main(int argc, char *argv[])
         char *fileName = buf;
 
         /* Recieve the response sent from the server */
-        len = recv(sockfd, buf, sizeof(buf), 0);
+        len = recv(sockfd, buf, BUFSIZ, 0);
         fputs(buf, stdout);
         printf("\n");
 
@@ -86,8 +90,14 @@ int main(int argc, char *argv[])
             {
                 handle_error("File Recieving Failed!");
             }
-            fp = fopen(fileName, "w");
-            fwrite(buf, sizeof(char), len, fp);
+            fd = open("sample.txt", O_WRONLY);
+            if(fd < 0)
+            {
+                handle_error("Write File Failed!");
+            }
+            write(fd, buf, sizeof(buf));
+            bzero(buf, BUFSIZ);
+            close(fd);
         }
     }
 
