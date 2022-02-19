@@ -87,43 +87,62 @@ int main()
 
                 /* Define structure for stat system call */
                 struct stat sfile;
-                int len_of_file = strlen(fileName);
-                fileName[len_of_file - 1] = '\0';
+                int len_of_file = strlen(fileName); // Get the len of file name
+                fileName[len_of_file - 1] = '\0'; // Make the last char to indicate the end of the string
 
-                int status = stat(fileName, &sfile);
+                int status = stat(fileName, &sfile); // Invoke stat system call
 
                 if (status < 0)
                 {
                     char *file_not_found = "File not found";
-                    if (send(new_sockfd, file_not_found, sizeof(buf), 0) < 0)
+                    if (send(new_sockfd, file_not_found, sizeof(buf), 0) < 0) // Send error over the socket
                     {
                         handle_error("Sending File Failed!", new_sockfd);
                     }
                 }
 
-                long double file_size = sfile.st_size;
+                long double file_size = sfile.st_size; // Get the bytes of required file.
 
-                int fd = open(fileName, O_RDONLY);
+                int fd = open(fileName, O_RDONLY); // Open the file in read only mode
                 char *ok = "OK";
-                if (send(new_sockfd, ok, sizeof(ok), 0) < 0)
+                if (send(new_sockfd, ok, sizeof(ok), 0) < 0) // Send "ok" over the socket
                 {
                     handle_error("Sending Ok Failed!", new_sockfd);
                 }
 
-                while (file_size > 0)
+                while (file_size > 0) // Continue the loop until all the bytes of the file is read.
                 {
-                    int size_read = read(fd, buf, BUFSIZ);
-                    if (size_read < 0)
+                    if(file_size > BUFSIZ)
                     {
-                        handle_error("Read SYSCALL Failed!", new_sockfd);
-                    }
+                        int size_read = read(fd, buf, BUFSIZ); // Read from the file
+                        if (size_read < 0)
+                        {
+                            handle_error("Read SYSCALL Failed!", new_sockfd);
+                        }
 
-                    if (send(new_sockfd, buf, BUFSIZ, 0) < 0)
+                        if (send(new_sockfd, buf, BUFSIZ, 0) < 0) // Send the read data over the socket
+                        {
+                            handle_error("File Send Failed!", new_sockfd);
+                        }
+
+                        file_size -= BUFSIZ; // Decrement the file size
+                    }
+                    else
                     {
-                        handle_error("File Send Failed!", new_sockfd);
-                    }
+                        printf("In here!\n");
+                        int size_read = read(fd, buf, file_size);
+                        if(size_read < 0)
+                        {
+                            handle_error("Read SYSCALL Failed in Else!", new_sockfd);
+                        }
 
-                    file_size -= BUFSIZ;
+                        if(send(new_sockfd, buf, file_size, 0) < 0)
+                        {
+                            handle_error("File Send Failed in else!", new_sockfd);
+                        }
+
+                        file_size -= BUFSIZ;
+                    }
                 }
 
                 close(fd);
