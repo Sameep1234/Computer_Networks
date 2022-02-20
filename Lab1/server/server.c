@@ -14,6 +14,7 @@
 #define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define SERVER_IP "127.0.0.1"
+#define MAX_LINE 1024
 
 void handle_error(char *error_msg, int socket_fd)
 {
@@ -25,7 +26,7 @@ void handle_error(char *error_msg, int socket_fd)
 int main()
 {
     struct sockaddr_in sin;
-    char buf[BUFSIZ];                 // Buffer
+    char buf[MAX_LINE];               // Buffer
     int sockfd, new_sockfd;           // Sockets
     int len;                          // For storing the length of the msg
     bzero((char *)&sin, sizeof(sin)); // Initialize structure
@@ -37,6 +38,8 @@ int main()
 
     /* Create a socket */
     sockfd = socket(PF_INET, SOCK_STREAM, 0);
+    int option = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
     if (sockfd < 0) // Check for error
     {
@@ -44,7 +47,7 @@ int main()
     }
 
     /* Bind the socket with particular port and address */
-    if (bind(sockfd, (struct sockaddr_in *)&sin, sizeof(sin)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     {
         handle_error("Bind Failed", sockfd);
     }
@@ -59,7 +62,7 @@ int main()
     /* Accept the incoming requests */
     while (1)
     {
-        new_sockfd = accept(sockfd, (struct sockaddr_in *)&sin, &len);
+        new_sockfd = accept(sockfd, (struct sockaddr *)&sin, &len);
         if (new_sockfd < 0) // Error Check
         {
             handle_error("Accept Failed", sockfd);
@@ -67,13 +70,13 @@ int main()
 
         /* Send "Hello" from server */
         char *initial_greetings = "Hello";
-        if (send(new_sockfd, initial_greetings, sizeof(buf), 0) < 0)
+        if (send(new_sockfd, initial_greetings, MAX_LINE, 0) < 0)
         {
             handle_error("Send Failed", new_sockfd);
         }
 
         /* Recieve request from client */
-        while (len = recv(new_sockfd, buf, sizeof(buf), 0))
+        while (len = recv(new_sockfd, buf, MAX_LINE, 0))
         {
             if (buf[0] == 'B' && buf[1] == 'y', buf[2] == 'e') // Terminate the socket if client says bye.
             {
@@ -86,24 +89,26 @@ int main()
                 char *fileName = buf;
 
                 /* Define structure for stat system call */
-                struct stat sfile;
                 int len_of_file = strlen(fileName); // Get the len of file name
-                fileName[len_of_file - 1] = '\0'; // Make the last char to indicate the end of the string
+                fileName[len_of_file - 1] = '\0';   // Make the last char to indicate the end of the string
 
-                int status = stat(fileName, &sfile); // Invoke stat system call
+                FILE *fd = fopen(fileName, "r"); // Open the file in read only mode
 
-                if (status < 0)
+                if (fd == NULL) // Send file not found through the network
                 {
                     char *file_not_found = "File not found";
-                    if (send(new_sockfd, file_not_found, sizeof(buf), 0) < 0) // Send error over the socket
+                    if (send(new_sockfd, file_not_found, MAX_LINE, 0) < 0) // Send error over the socket
                     {
                         handle_error("Sending File Failed!", new_sockfd);
                     }
                 }
 
-                long double file_size = sfile.st_size; // Get the bytes of required file.
+                fseek(fd, 0L, SEEK_END);   // Set file pointer to the end of the file
+                int file_size = ftell(fd); // Get the relative offset wrt SOF.
 
-                int fd = open(fileName, O_RDONLY); // Open the file in read only mode
+                rewind(fd); // Set the pointer again to the beginning of the file.
+                printf("SIZE: %d\n", file_size);
+
                 char *ok = "OK";
                 if (send(new_sockfd, ok, sizeof(ok), 0) < 0) // Send "ok" over the socket
                 {
@@ -112,40 +117,22 @@ int main()
 
                 while (file_size > 0) // Continue the loop until all the bytes of the file is read.
                 {
-                    if(file_size > BUFSIZ)
+                    if(fgets(buf, MAX_LINE, fd) == NULL) // Nothing left to read
                     {
-                        int size_read = read(fd, buf, BUFSIZ); // Read from the file
-                        if (size_read < 0)
-                        {
-                            handle_error("Read SYSCALL Failed!", new_sockfd);
-                        }
-
-                        if (send(new_sockfd, buf, BUFSIZ, 0) < 0) // Send the read data over the socket
-                        {
-                            handle_error("File Send Failed!", new_sockfd);
-                        }
-
-                        file_size -= BUFSIZ; // Decrement the file size
+                        break;
                     }
-                    else
+
+                    if (send(new_sockfd, buf, sizeof(buf), 0) < 0) // Send the read data over the socket
                     {
-                        printf("In here!\n");
-                        int size_read = read(fd, buf, file_size);
-                        if(size_read < 0)
-                        {
-                            handle_error("Read SYSCALL Failed in Else!", new_sockfd);
-                        }
-
-                        if(send(new_sockfd, buf, file_size, 0) < 0)
-                        {
-                            handle_error("File Send Failed in else!", new_sockfd);
-                        }
-
-                        file_size -= BUFSIZ;
+                        handle_error("File Send Failed!", new_sockfd);
                     }
+
+                    bzero(buf, MAX_LINE); // Erase the previous data
+
+                    file_size -= MAX_LINE; // Decrement the file size
                 }
 
-                close(fd);
+                fclose(fd); // Close the file descriptor
             }
         }
     }
