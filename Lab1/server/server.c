@@ -107,7 +107,6 @@ int main()
                 int file_size = ftell(fd); // Get the relative offset wrt SOF.
 
                 rewind(fd); // Set the pointer again to the beginning of the file.
-                printf("SIZE: %d\n", file_size);
 
                 char *ok = "OK";
                 if (send(new_sockfd, ok, sizeof(ok), 0) < 0) // Send "ok" over the socket
@@ -115,21 +114,16 @@ int main()
                     handle_error("Sending Ok Failed!", new_sockfd);
                 }
 
-                while (file_size > 0) // Continue the loop until all the bytes of the file is read.
+                bzero(buf, MAX_LINE);
+                while (fgets(buf, MAX_LINE, fd) != NULL) // Continue the loop until all the bytes of the file is read.
                 {
-                    if(fgets(buf, MAX_LINE, fd) == NULL) // Nothing left to read
-                    {
-                        break;
-                    }
-
-                    if (send(new_sockfd, buf, sizeof(buf), 0) < 0) // Send the read data over the socket
+                    printf("%s\n", buf);
+                    if (send(new_sockfd, buf, MAX_LINE, 0) < 0) // Send the read data over the socket
                     {
                         handle_error("File Send Failed!", new_sockfd);
                     }
 
                     bzero(buf, MAX_LINE); // Erase the previous data
-
-                    file_size -= MAX_LINE; // Decrement the file size
                 }
 
                 fclose(fd); // Close the file descriptor

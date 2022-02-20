@@ -85,22 +85,22 @@ int main(int argc, char *argv[])
 
         if (buf[0] == 'O' && buf[1] == 'K')
         {
-            fd = fopen("sample.txt", "w"); // Open File in write mode
-            if (fd == NULL)
+            while (len = recv(sockfd, buf, MAX_LINE, 0) > 0)
             {
-                handle_error("Opening file failed!");
-            }
-            while (1)
-            {
-                len = recv(sockfd, buf, MAX_LINE, 0);
-                if(len <= 0)
+                fd = fopen("sample.txt", "a"); // Open File in write mode
+                if (fd == NULL)
                 {
-                    break;
+                    handle_error("Opening file failed!");
                 }
-                fputs(buf, fd);
+                printf("%s\n", buf);
+                fprintf(fd, "%s", buf);
+                // if(temp < 0)
+                // {
+                //     handle_error("Error while writing");
+                // }
                 bzero(buf, MAX_LINE);
+                fclose(fd);
             }
-            fclose(fd);
         }
     }
 
