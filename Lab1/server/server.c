@@ -79,7 +79,7 @@ int main()
         while (len = recv(new_sockfd, buf, MAX_LINE, 0))
         {
             // fputs(buf, stdout);
-            if (buf[0] == 'B' && buf[1] == 'y', buf[2] == 'e') // Terminate the socket if client says bye.
+            if (buf[0] == 'B' && buf[1] == 'y'&& buf[2] == 'e' && strlen(buf) < 5) // Terminate the socket if client says bye.
             {
                 printf("Bye: Closing Connection\n");
                 close(new_sockfd);
