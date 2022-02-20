@@ -78,6 +78,7 @@ int main()
         /* Recieve request from client */
         while (len = recv(new_sockfd, buf, MAX_LINE, 0))
         {
+            // fputs(buf, stdout);
             if (buf[0] == 'B' && buf[1] == 'y', buf[2] == 'e') // Terminate the socket if client says bye.
             {
                 printf("Bye: Closing Connection\n");
@@ -91,6 +92,8 @@ int main()
                 /* Define structure for stat system call */
                 int len_of_file = strlen(fileName); // Get the len of file name
                 fileName[len_of_file - 1] = '\0';   // Make the last char to indicate the end of the string
+
+                // printf("%s %ld\n", fileName, strlen(fileName));
 
                 FILE *fd = fopen(fileName, "r"); // Open the file in read only mode
 
@@ -117,7 +120,6 @@ int main()
                 bzero(buf, MAX_LINE);
                 while (fgets(buf, MAX_LINE, fd) != NULL) // Continue the loop until all the bytes of the file is read.
                 {
-                    printf("%s\n", buf);
                     if (send(new_sockfd, buf, MAX_LINE, 0) < 0) // Send the read data over the socket
                     {
                         handle_error("File Send Failed!", new_sockfd);
@@ -125,8 +127,12 @@ int main()
 
                     bzero(buf, MAX_LINE); // Erase the previous data
                 }
-
+                // printf("FD CLOSED!\n");
+                char *over = "E";
+                send(new_sockfd, over, sizeof(over), 0);
                 fclose(fd); // Close the file descriptor
+                // printf("FD CLOSED 2!\n");
+                bzero(buf, MAX_LINE);
             }
         }
     }

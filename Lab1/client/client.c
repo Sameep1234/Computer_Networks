@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
     struct hostent *hp;     // Create hostent Structure
     int sockfd;             // Socket file descriptor
     char buf[MAX_LINE];     // Create buffer
+    char buf_2[MAX_LINE];     // Create buffer
     struct sockaddr_in sin; // Structure for sockaddr_in
     char *host;             // Host
 
@@ -71,12 +72,17 @@ int main(int argc, char *argv[])
     printf("\n");
 
     /* Write in buffer and send it to server */
-    while (fgets(buf, MAX_LINE, stdin))
+    while (fgets(buf_2, MAX_LINE, stdin))
     {
-        buf[MAX_LINE - 1] = '\0';
-        int len = strlen(buf) + 1;
-        send(sockfd, buf, len, 0);
-        char *fileName = buf;
+        buf_2[MAX_LINE - 1] = '\0';
+        int len = strlen(buf_2) + 1;
+        if(send(sockfd, buf_2, len, 0) < 0)
+        {
+            handle_error("SEND FAILED!!!!");
+        }
+        char *fileName = buf_2;
+        len = strlen(fileName);
+        fileName[len - 1] = '\0';
 
         /* Recieve the response sent from the server */
         len = recv(sockfd, buf, MAX_LINE, 0);
@@ -85,19 +91,19 @@ int main(int argc, char *argv[])
 
         if (buf[0] == 'O' && buf[1] == 'K')
         {
+            bzero(buf, MAX_LINE);
             while (len = recv(sockfd, buf, MAX_LINE, 0) > 0)
             {
-                fd = fopen("sample.txt", "a"); // Open File in write mode
+                if(buf[0] == 'E')
+                {
+                    break;
+                }
+                fd = fopen(fileName, "a"); // Open File in write mode
                 if (fd == NULL)
                 {
                     handle_error("Opening file failed!");
                 }
-                printf("%s\n", buf);
                 fprintf(fd, "%s", buf);
-                // if(temp < 0)
-                // {
-                //     handle_error("Error while writing");
-                // }
                 bzero(buf, MAX_LINE);
                 fclose(fd);
             }
