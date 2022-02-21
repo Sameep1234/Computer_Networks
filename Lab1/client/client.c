@@ -1,3 +1,9 @@
+/*
+    Name: Sameep Vani
+    Roll Number: AU1940049
+    Email: sameep.v@ahduni.edu.in
+*/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
