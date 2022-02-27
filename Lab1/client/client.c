@@ -18,7 +18,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #define SERVER_PORT 8089
-#define MAX_LINE 1024 /* Buffer size of 1024 */
+#define MAX_LINE BUFSIZ /* Buffer size of 8KB */
 
 /* Handle Error Function */
 void handle_error(char *error_msg)
@@ -100,11 +100,12 @@ int main(int argc, char *argv[])
             bzero(buf, MAX_LINE);
             while (len = recv(sockfd, buf, MAX_LINE, 0) > 0)
             {
+                printf("Bytes Recieved: %ld\n", strlen(buf));
                 if(buf[0] == 'E')
                 {
                     break;
                 }
-                fd = fopen(fileName, "a"); // Open File in write mode
+                fd = fopen(fileName, "ab"); // Open File in append mode
                 if (fd == NULL)
                 {
                     handle_error("Opening file failed!");

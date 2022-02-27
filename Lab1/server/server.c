@@ -20,7 +20,7 @@
 #define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define SERVER_IP "127.0.0.1"
-#define MAX_LINE 1024
+#define MAX_LINE BUFSIZ
 
 void handle_error(char *error_msg, int socket_fd)
 {
@@ -33,6 +33,7 @@ int main()
 {
     struct sockaddr_in sin;
     char buf[MAX_LINE];               // Buffer
+    printf("%ld\n", sizeof(buf));
     int sockfd, new_sockfd;           // Sockets
     int len;                          // For storing the length of the msg
     bzero((char *)&sin, sizeof(sin)); // Initialize structure
@@ -85,7 +86,7 @@ int main()
         while (len = recv(new_sockfd, buf, MAX_LINE, 0))
         {
             // fputs(buf, stdout);
-            if (buf[0] == 'B' && buf[1] == 'y'&& buf[2] == 'e' && strlen(buf) < 5) // Terminate the socket if client says bye.
+            if (buf[0] == 'B' && buf[1] == 'y' && buf[2] == 'e' && strlen(buf) < 5) // Terminate the socket if client says bye.
             {
                 printf("Bye: Closing Connection\n");
                 close(new_sockfd);
@@ -100,8 +101,8 @@ int main()
                 fileName[len_of_file - 1] = '\0';   // Make the last char to indicate the end of the string
 
                 // printf("%s %ld\n", fileName, strlen(fileName));
-
-                FILE *fd = fopen(fileName, "r"); // Open the file in read only mode
+                
+                FILE *fd = fopen(fileName, "rb"); // Open the file in read only mode
 
                 if (fd == NULL) // Send file not found through the network
                 {
@@ -112,20 +113,22 @@ int main()
                     }
                 }
 
-                fseek(fd, 0L, SEEK_END);   // Set file pointer to the end of the file
-                int file_size = ftell(fd); // Get the relative offset wrt SOF.
-
-                rewind(fd); // Set the pointer again to the beginning of the file.
-
                 char *ok = "OK";
-                if (send(new_sockfd, ok, sizeof(ok), 0) < 0) // Send "ok" over the socket
+                if (send(new_sockfd, ok, MAX_LINE, 0) < 0) // Send "ok" over the socket
                 {
                     handle_error("Sending Ok Failed!", new_sockfd);
                 }
 
                 bzero(buf, MAX_LINE);
+                long int total_bytes = 0;
                 while (fgets(buf, MAX_LINE, fd) != NULL) // Continue the loop until all the bytes of the file is read.
                 {
+                    if (ferror(fd) != 0)
+                    {
+                        handle_error("Error in fgets()", new_sockfd);
+                    }
+                    printf("Bytes Send: %ld\n", strlen(buf));
+                    total_bytes += strlen(buf);
                     if (send(new_sockfd, buf, MAX_LINE, 0) < 0) // Send the read data over the socket
                     {
                         handle_error("File Send Failed!", new_sockfd);
@@ -133,12 +136,18 @@ int main()
 
                     bzero(buf, MAX_LINE); // Erase the previous data
                 }
-                // printf("FD CLOSED!\n");
-                char *over = "E";
-                send(new_sockfd, over, sizeof(over), 0);
-                fclose(fd); // Close the file descriptor
-                // printf("FD CLOSED 2!\n");
-                bzero(buf, MAX_LINE);
+                printf("Total Bytes Sent: %ld\n", total_bytes);
+                if (ferror(fd) != 0)
+                {
+                    handle_error("Error in fgets()", new_sockfd);
+                }
+                if (feof(fd))
+                {
+                    char *over = "E";
+                    printf("SENDING EOF\n");
+                    send(new_sockfd, over, MAX_LINE, 0);
+                    fclose(fd); // Close the file descriptor
+                }
             }
         }
     }
