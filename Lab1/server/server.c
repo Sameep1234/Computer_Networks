@@ -20,7 +20,7 @@
 #define SERVER_PORT 8089
 #define MAX_PENDING 5
 #define SERVER_IP "127.0.0.1"
-#define MAX_LINE BUFSIZ
+#define MAX_LINE 1024
 
 void handle_error(char *error_msg, int socket_fd)
 {
@@ -121,6 +121,7 @@ int main()
 
                 bzero(buf, MAX_LINE);
                 long int total_bytes = 0;
+
                 while (fgets(buf, MAX_LINE, fd) != NULL) // Continue the loop until all the bytes of the file is read.
                 {
                     if (ferror(fd) != 0)
@@ -129,7 +130,7 @@ int main()
                     }
                     printf("Bytes Send: %ld\n", strlen(buf));
                     total_bytes += strlen(buf);
-                    if (send(new_sockfd, buf, MAX_LINE, 0) < 0) // Send the read data over the socket
+                    if (send(new_sockfd, buf, sizeof(buf), 0) < 0) // Send the read data over the socket
                     {
                         handle_error("File Send Failed!", new_sockfd);
                     }

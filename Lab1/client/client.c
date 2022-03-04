@@ -18,7 +18,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #define SERVER_PORT 8089
-#define MAX_LINE BUFSIZ /* Buffer size of 8KB */
+#define MAX_LINE 1024 /* Buffer size of 8KB */
 
 /* Handle Error Function */
 void handle_error(char *error_msg)
