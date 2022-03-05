@@ -103,6 +103,14 @@ int main()
                 // printf("%s %ld\n", fileName, strlen(fileName));
                 
                 FILE *fd = fopen(fileName, "rb"); // Open the file in read only mode
+                
+                /* Calculate the size of the file*/
+                fseek(fd, 0L, SEEK_END);   // Set file pointer to the end of the file
+                int file_size = ftell(fd); // Get the relative offset wrt SOF.
+
+                rewind(fd); // Set the pointer again to the beginning of the file.
+
+                // printf("FILE SIZE BY SERVER %d\n", file_size);
 
                 if (fd == NULL) // Send file not found through the network
                 {
@@ -122,13 +130,14 @@ int main()
                 bzero(buf, MAX_LINE);
                 long int total_bytes = 0;
 
-                while (fgets(buf, MAX_LINE, fd) != NULL) // Continue the loop until all the bytes of the file is read.
+                while (fgets(buf, sizeof(buf), fd) != NULL) // Continue the loop until all the bytes of the file is read.
                 {
                     if (ferror(fd) != 0)
                     {
                         handle_error("Error in fgets()", new_sockfd);
                     }
                     printf("Bytes Send: %ld\n", strlen(buf));
+                    // printf("BUF CONTENTS: %s\n", buf);
                     total_bytes += strlen(buf);
                     if (send(new_sockfd, buf, sizeof(buf), 0) < 0) // Send the read data over the socket
                     {
