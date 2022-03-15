@@ -69,20 +69,23 @@ int main(int argc, char *argv[])
     {
         new_buf[MAX_LINE - 1] = '\0';
         len = strlen(new_buf) + 1;
-        sendto(s, new_buf, MAX_LINE, 0, (const struct sockaddr *) &sin, (socklen_t)sizeof(sin));
-        while (bytes = recvfrom(s, buf, MAX_LINE, 0, &servaddr, servaddr_len))
+        sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+        fp = fopen(fileName, "wb");
+        if (NULL == fp)
         {
-            printf("%s\n", (buf));
-            fp = fopen(fileName, "ab");
-            if (NULL == fp)
-            {
-                error_handler();
-            }
-
-            fprintf(fp, "%s", buf);
-
-            fclose(fp);
+            error_handler();
         }
+        int total_bytes = 0;
+        while ((bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddr_len)))
+        {
+            total_bytes += strlen(buf);
+            printf("Bytes recieved: %d\n", bytes);
+            fwrite(buf, 1, MAX_LINE - 1, fp);
+            printf("Total Bytes Read: %d\n", total_bytes);
+            bzero(buf, MAX_LINE);
+        }
+        printf("Total Bytes Read: %d\n", total_bytes);
+        fclose(fp);
     }
     return 0;
 }

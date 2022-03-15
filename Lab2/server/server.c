@@ -52,7 +52,7 @@ int main()
 
     while (1)
     {
-        while (len = recvfrom(s, buf, MAX_LINE, 0, (const struct sockaddr_storage *) &clientaddr, clientaddr_len))
+        while ((len = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)))
         {
             printf("%s\n", buf); // "GET" coming or not!
             /* Open the file that we wish to transfer */
@@ -64,16 +64,27 @@ int main()
 
             /* Read data from file and send it */
             bzero(buf, sizeof(buf));
-            while (fgets(buf, MAX_LINE, fp) != NULL)
+            int bytes_read = 0, total_bytes;
+            while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
             {
-                /* First read file in chunks of MAX_LINE bytes */
-                printf("%s\n", buf);
-                if (sendto(s, buf, MAX_LINE, 0, (const struct sockaddr_storage *) &clientaddr, clientaddr_len) < 0)
+                bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+                buf[MAX_LINE - 1] = '\0';
+                // printf("%s\n", buf);
+                if (ferror(fp) != 0)
                 {
                     error_handler();
                 }
-                bzero(buf, MAX_LINE);
+                printf("Bytes Send: %d\n", bytes_read);
+                // printf("BUF CONTENTS: %s\n", buf);
+                total_bytes += bytes_read;
+                if (sendto(s, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, (socklen_t)sizeof(clientaddr)) < 0) // Send the read data over the socket
+                {
+                    error_handler();
+                }
+
+                bzero(buf, MAX_LINE); // Erase the previous data
             }
+            printf("Total Bytes sent: %d\n", total_bytes);
 
             fclose(fp);
 
