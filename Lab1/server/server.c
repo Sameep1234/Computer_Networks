@@ -129,9 +129,13 @@ int main()
 
                 bzero(buf, MAX_LINE);
                 long int total_bytes = 0;
-
-                while (fgets(buf, sizeof(buf), fd) != NULL) // Continue the loop until all the bytes of the file is read.
+                int count = 0;
+                while (!feof(fd)) // Continue the loop until all the bytes of the file is read.
                 {
+                    count++;
+                    printf("Count Of While Loop: %d", count);
+                    fgets(buf, sizeof(buf), fd);
+                    printf("%s\n", buf);
                     if (ferror(fd) != 0)
                     {
                         handle_error("Error in fgets()", new_sockfd);
