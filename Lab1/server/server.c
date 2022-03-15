@@ -104,14 +104,6 @@ int main()
                 
                 FILE *fd = fopen(fileName, "rb"); // Open the file in read only mode
                 
-                /* Calculate the size of the file*/
-                fseek(fd, 0L, SEEK_END);   // Set file pointer to the end of the file
-                int file_size = ftell(fd); // Get the relative offset wrt SOF.
-
-                rewind(fd); // Set the pointer again to the beginning of the file.
-
-                // printf("FILE SIZE BY SERVER %d\n", file_size);
-
                 if (fd == NULL) // Send file not found through the network
                 {
                     char *file_not_found = "File not found";
@@ -129,20 +121,19 @@ int main()
 
                 bzero(buf, MAX_LINE);
                 long int total_bytes = 0;
-                int count = 0;
+                int bytes_read;
                 while (!feof(fd)) // Continue the loop until all the bytes of the file is read.
                 {
-                    count++;
-                    printf("Count Of While Loop: %d", count);
-                    fgets(buf, sizeof(buf), fd);
-                    printf("%s\n", buf);
+                    bytes_read = fread(buf, 1, MAX_LINE - 1, fd);
+                    buf[MAX_LINE - 1] = '\0';
+                    // printf("%s\n", buf);
                     if (ferror(fd) != 0)
                     {
                         handle_error("Error in fgets()", new_sockfd);
                     }
-                    printf("Bytes Send: %ld\n", strlen(buf));
+                    printf("Bytes Send: %d\n", bytes_read);
                     // printf("BUF CONTENTS: %s\n", buf);
-                    total_bytes += strlen(buf);
+                    total_bytes += bytes_read;
                     if (send(new_sockfd, buf, sizeof(buf), 0) < 0) // Send the read data over the socket
                     {
                         handle_error("File Send Failed!", new_sockfd);
@@ -157,7 +148,7 @@ int main()
                 }
                 if (feof(fd))
                 {
-                    char *over = "E";
+                    char *over = "EOF";
                     printf("SENDING EOF\n");
                     send(new_sockfd, over, MAX_LINE, 0);
                     fclose(fd); // Close the file descriptor

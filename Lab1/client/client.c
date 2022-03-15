@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     struct hostent *hp;     // Create hostent Structure
     int sockfd;             // Socket file descriptor
     char buf[MAX_LINE];     // Create buffer
-    char buf_2[MAX_LINE];     // Create buffer
+    char buf_2[MAX_LINE];   // Create buffer
     struct sockaddr_in sin; // Structure for sockaddr_in
     char *host;             // Host
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     {
         buf_2[MAX_LINE - 1] = '\0';
         int len = strlen(buf_2) + 1;
-        if(send(sockfd, buf_2, len, 0) < 0)
+        if (send(sockfd, buf_2, len, 0) < 0)
         {
             handle_error("SEND FAILED!!!!");
         }
@@ -98,22 +98,27 @@ int main(int argc, char *argv[])
         if (buf[0] == 'O' && buf[1] == 'K')
         {
             bzero(buf, MAX_LINE);
-            while (len = recv(sockfd, buf, MAX_LINE, 0) > 0)
+            fd = fopen(fileName, "wb");
+            if (fd == NULL)
+            {
+                handle_error("Opening file failed!");
+            }
+            int total_bytes = 0;
+            while (len = recv(sockfd, buf, sizeof(buf), 0) > 0)
             {
                 printf("Bytes Recieved: %ld\n", strlen(buf));
-                if(buf[0] == 'E')
+                total_bytes += len;
+                // printf("Recived String: %s\n", buf);
+                if (buf[0] == 'E' && buf[1] == 'O' && buf[2] == 'F' && strlen(buf) < 5)
                 {
+                    printf("INSIDE E\n");
                     break;
                 }
-                fd = fopen(fileName, "ab"); // Open File in append mode
-                if (fd == NULL)
-                {
-                    handle_error("Opening file failed!");
-                }
-                fprintf(fd, "%s", buf);
+                fwrite(buf, 1, MAX_LINE - 1, fd);
                 bzero(buf, MAX_LINE);
-                fclose(fd);
             }
+            printf("Total Bytes Recieved: %d\n", total_bytes);
+            fclose(fd);
         }
     }
 
