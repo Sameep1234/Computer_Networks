@@ -68,6 +68,9 @@ int main()
             int bytes_read = 0, total_bytes, loop_count = 0;
             while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
             {
+                struct timespec t;
+                t.tv_sec = 0.1;
+                nanosleep((const struct timespec *) &t, NULL);
                 loop_count++;
                 bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
                 buf[MAX_LINE - 1] = '\0';
@@ -90,11 +93,12 @@ int main()
 
             fclose(fp);
 
-            // strcpy(buf, "!");
-            // if (send(new_s, buf, MAX_LINE, 0) < 0)
-            // {
-            //     error_handler();
-            // }
+            printf("Sending Bye!\n");
+            strcpy(buf, "BYE\0");
+            if (sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *) &clientaddr, clientaddr_len) < 0)
+            {
+                error_handler();
+            }
         }
     }
     return 0;

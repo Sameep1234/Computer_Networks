@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in sin;
     struct sockaddr_storage servaddr;
     char *fileName = "sample.mp4";
-    socklen_t servaddr_len = sizeof(servaddr);
+    socklen_t servaddr_len = sizeof(struct sockaddr);
     char buf[MAX_LINE];
     int s, len, c, r;
     char *host;
@@ -76,20 +76,22 @@ int main(int argc, char *argv[])
             error_handler();
         }
         int total_bytes = 0, loop_count = 0;
-        while ((bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddr_len)))
+        while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *) &servaddr_len))
         {
             total_bytes += bytes;
             loop_count++;
             printf("Bytes recieved: %d\n", bytes);
-            if(fwrite(buf, 1, MAX_LINE - 1, fp) == 0)
+            if (strcmp(buf, "BYE") == 0)
             {
-                error_handler();
+                printf("EOF Recieved!\n");
+                break;
             }
-            printf("Total Bytes Read: %d\n", total_bytes);
-            printf("Loop Count: %d\n", loop_count);
+            fwrite(buf, 1, MAX_LINE - 1, fp);
+            // printf("Total Bytes Read: %d\n", total_bytes);
             bzero(buf, MAX_LINE);
         }
         printf("Total Bytes Read: %d\n", total_bytes);
+        printf("Loop Count: %d\n", loop_count);
         fclose(fp);
     }
     return 0;
