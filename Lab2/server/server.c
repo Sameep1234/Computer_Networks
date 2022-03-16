@@ -50,52 +50,64 @@ int main()
         error_handler();
     }
     puts("Bind done");
+    int bytes_read = 0, total_bytes, loop_count = 0;
 
     while (1)
     {
+
         while ((len = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)))
         {
-            printf("%s\n", buf); // "GET" coming or not!
-            /* Open the file that we wish to transfer */
-            fp = fopen(fileName, "rb");
-            if (fp == NULL)
+            if (strcmp(buf, "GET") == 0)
             {
-                error_handler();
-            }
+                printf("%s\n", buf); // "GET" coming or not!
+                /* Open the file that we wish to transfer */
 
-            /* Read data from file and send it */
-            bzero(buf, sizeof(buf));
-            int bytes_read = 0, total_bytes, loop_count = 0;
-            while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
-            {
-                struct timespec t;
-                t.tv_sec = 0.1;
-                nanosleep((const struct timespec *) &t, NULL);
-                loop_count++;
-                bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
-                buf[MAX_LINE - 1] = '\0';
-                // printf("%s\n", buf);
-                if (ferror(fp) != 0)
+                fp = fopen(fileName, "rb");
+                if (fp == NULL)
                 {
                     error_handler();
                 }
-                printf("Bytes Send: %d\n", bytes_read);
-                // printf("BUF CONTENTS: %s\n", buf);
-                total_bytes += bytes_read;
-                if (sendto(s, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0) // Send the read data over the socket
+
+                /* Read data from file and send it */
+                bzero(buf, sizeof(buf));
+
+                while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
                 {
-                    error_handler();
-                }
-                bzero(buf, MAX_LINE); // Erase the previous data
+                    struct timespec t;
+                    printf("Here1\n");
+                    t.tv_sec = 1;
+                    printf("Here2\n");
+                    nanosleep((const struct timespec *)&t, NULL);
+                    loop_count++;
+                    bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+                    buf[MAX_LINE - 1] = '\0';
+                    // printf("%s\n", buf);
+                    if (ferror(fp) != 0)
+                    {
+                        error_handler();
+                    }
+                    printf("Bytes Send: %d\n", bytes_read);
+                    // printf("BUF CONTENTS: %s\n", buf);
+                    total_bytes += bytes_read;
+                    if (sendto(s, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0) // Send the read data over the socket
+                    {
+                        error_handler();
+                    }
+                    bzero(buf, MAX_LINE); // Erase the previous data
+                
             }
             printf("Total Bytes sent: %d\n", total_bytes);
             printf("Loop Count: %d\n", loop_count);
 
             fclose(fp);
-
+            }
+            else
+            {
+                error_handler();
+            }
             printf("Sending Bye!\n");
             strcpy(buf, "BYE\0");
-            if (sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *) &clientaddr, clientaddr_len) < 0)
+            if (sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
             {
                 error_handler();
             }
