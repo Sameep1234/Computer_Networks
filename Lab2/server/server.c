@@ -69,7 +69,7 @@ int main()
             while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
             {
                 struct timespec t;
-                t.tv_sec = 0.1;
+                t.tv_nsec = 100000000;
                 nanosleep((const struct timespec *) &t, NULL);
                 loop_count++;
                 bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
