@@ -12,10 +12,10 @@
 #define MAX_LINE BUFSIZ
 #define IP_ADDRESS "127.0.0.1"
 
-void error_handler()
+void error_handler(char *error_msg)
 {
-    perror("error");
-    exit(1);
+    perror(error_msg);
+    exit(EXIT_FAILURE);
 }
 
 int main(int argc, char *argv[])
@@ -39,14 +39,14 @@ int main(int argc, char *argv[])
     }
     else
     {
-        error_handler();
+        error_handler("Argument Count Invalid!");
     }
     /* translate host name into peer’s IP address */
     /* gethostbyname() returns a pointer to a hostent struct or NULL.*/
     hp = gethostbyname(host);
     if (!hp)
     {
-        error_handler();
+        error_handler("Host entry Failed!");
     }
 
     /*Initialize sockaddr struc to memory byte 0*/
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0)
     {
-        error_handler();
+        error_handler("Socket creation failure");
     }
     puts("Socket created");
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         fp = fopen(fileName, "wb");
         if (NULL == fp)
         {
-            error_handler();
+            error_handler("Opening file failed!");
         }
         int total_bytes = 0, loop_count = 0;
         while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *) &servaddr_len))
