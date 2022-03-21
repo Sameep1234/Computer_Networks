@@ -76,7 +76,8 @@ int main()
                 {
                     struct timespec t;
                     printf("Here1\n");
-                    t.tv_sec = 0.5;
+                    t.tv_sec = 0;
+                    t.tv_nsec = 300000000L;
                     printf("Here2\n");
                     nanosleep((const struct timespec *)&t, NULL);
                     loop_count++;
