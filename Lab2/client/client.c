@@ -64,35 +64,30 @@ int main(int argc, char *argv[])
         error_handler("Socket creation failure");
     }
     puts("Socket created");
-
-    while (fgets(new_buf, MAX_LINE, stdin))
+    strcpy(new_buf, "GET\0");
+    sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+    fp = fopen(fileName, "wb");
+    if (NULL == fp)
     {
-        new_buf[MAX_LINE - 1] = '\0';
-        len = strlen(new_buf) + 1;
-        sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
-        fp = fopen(fileName, "wb");
-        if (NULL == fp)
-        {
-            error_handler("Opening file failed!");
-        }
-        int total_bytes = 0, loop_count = 0;
-        while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *) &servaddr_len))
-        {
-            total_bytes += bytes;
-            loop_count++;
-            printf("Bytes recieved: %d\n", bytes);
-            if (strcmp(buf, "BYE") == 0)
-            {
-                printf("EOF Recieved!\n");
-                break;
-            }
-            fwrite(buf, 1, MAX_LINE - 1, fp);
-            // printf("Total Bytes Read: %d\n", total_bytes);
-            bzero(buf, MAX_LINE);
-        }
-        printf("Total Bytes Read: %d\n", total_bytes);
-        printf("Loop Count: %d\n", loop_count);
-        fclose(fp);
+        error_handler("Opening file failed!");
     }
+    int total_bytes = 0, loop_count = 0;
+    while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddr_len))
+    {
+        total_bytes += bytes;
+        loop_count++;
+        printf("Bytes recieved: %d\n", bytes);
+        if (strcmp(buf, "BYE") == 0)
+        {
+            printf("EOF Recieved!\n");
+            break;
+        }
+        fwrite(buf, 1, MAX_LINE - 1, fp);
+        // printf("Total Bytes Read: %d\n", total_bytes);
+        bzero(buf, MAX_LINE);
+    }
+    printf("Total Bytes Read: %d\n", total_bytes);
+    printf("Loop Count: %d\n", loop_count);
+    fclose(fp);
     return 0;
 }

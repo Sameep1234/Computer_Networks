@@ -75,10 +75,7 @@ int main()
                 while (!feof(fp)) // Continue the loop until all the bytes of the file is read.
                 {
                     struct timespec t;
-                    printf("Here1\n");
-                    t.tv_sec = 0;
-                    t.tv_nsec = 300000000L;
-                    printf("Here2\n");
+                    t.tv_nsec = 1000000L;
                     nanosleep((const struct timespec *)&t, NULL);
                     loop_count++;
                     bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
