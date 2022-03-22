@@ -26,7 +26,7 @@ int main()
     socklen_t clientaddr_len = sizeof(clientaddr);
     struct sockaddr_in sin;
     char buf[MAX_LINE];
-    int s, new_s, b, len;
+    int s, b, len;
     FILE *fp;
     bzero((char *)&sin, sizeof(sin));
 
@@ -77,7 +77,7 @@ int main()
                     struct timespec t;
                     printf("Here1\n");
                     t.tv_sec = 0;
-                    t.tv_nsec = 300000000L;
+                    t.tv_nsec = 600000000L;
                     printf("Here2\n");
                     nanosleep((const struct timespec *)&t, NULL);
                     loop_count++;
