@@ -41,19 +41,20 @@ int main(int argc, char *argv[])
     {
         error_handler("Argument Count Invalid!");
     }
-    /* translate host name into peer’s IP address */
-    /* gethostbyname() returns a pointer to a hostent struct or NULL.*/
+    /* Translate host name into peer’s IP address */
     hp = gethostbyname(host);
     if (!hp)
     {
         error_handler("Host entry Failed!");
     }
 
-    /*Initialize sockaddr struc to memory byte 0*/
+    /* Clearing the memory */
     bzero((char *)&sin, sizeof(sin));
+
     /*Prepare the sockaddr_in structure*/
     sin.sin_family = AF_INET;
     sin.sin_port = htons(SERVER_PORT);
+
     /*Copy the address of host in hostent to sockaddr*/
     bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
 
@@ -64,30 +65,40 @@ int main(int argc, char *argv[])
         error_handler("Socket creation failure");
     }
     puts("Socket created");
+
+    /* Send "GET" directly to receive the video file. */
     strcpy(new_buf, "GET\0");
     sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+
+    /* Open the file in wb mode. */
     fp = fopen(fileName, "wb");
     if (NULL == fp)
     {
         error_handler("Opening file failed!");
     }
+
     int total_bytes = 0, loop_count = 0;
+    /* Receive the data from the server and write it in file. */
     while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddr_len))
     {
         total_bytes += bytes;
         loop_count++;
         printf("Bytes recieved: %d\n", bytes);
+
+        /* If receive "BYE" means EOF Recieved. */
         if (strcmp(buf, "BYE") == 0)
         {
             printf("EOF Recieved!\n");
             break;
         }
         fwrite(buf, 1, bytes, fp);
-        // printf("Total Bytes Read: %d\n", total_bytes);
+
+        /* Clearing the memory */
         bzero(buf, MAX_LINE);
     }
     printf("Total Bytes Read: %d\n", total_bytes);
     printf("Loop Count: %d\n", loop_count);
+    /* Close the file. */    
     fclose(fp);
     return 0;
 }
