@@ -21,7 +21,6 @@ int main()
     char *fileName = "sample.mp4";
     struct sockaddr_in sin;
     char buf[MAX_LINE];
-    int s, b, len;
     FILE *fp;
 
     sin = initialize(sin);
