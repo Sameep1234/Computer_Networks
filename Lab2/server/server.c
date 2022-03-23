@@ -75,9 +75,13 @@ int main()
                 /* Continue the loop until all the bytes of the file is read. */
                 while (!feof(fp))
                 {
-                    /* In our case the optimal delay is 0.0001s */
+                    /* In our case the optimal delay is 0.001s */
+                    /* 
+                        But to show while transferring we are streaming, 
+                        we chose delay = 0.01s
+                    */
                     struct timespec t;
-                    t.tv_nsec = 100000L;
+                    t.tv_nsec = 10000000L;
                     nanosleep((const struct timespec *)&t, NULL);
 
                     loop_count++;
