@@ -1,22 +1,9 @@
-/* AU1940177 Kairavi Shah */
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#define SERVER_PORT 8080
-#define MAX_LINE BUFSIZ
-#define IP_ADDRESS "127.0.0.1"
+#include "../header.h";
 
-void error_handler(char *error_msg)
-{
-    perror(error_msg);
-    exit(EXIT_FAILURE);
-}
+void error_handler(char *error_msg, int sock_fd);
+
+void clear_memory(void *buf);
+
 
 int main(int argc, char *argv[])
 {
@@ -90,4 +77,16 @@ int main(int argc, char *argv[])
     printf("Loop Count: %d\n", loop_count);
     fclose(fp);
     return 0;
+}
+
+void error_handler(char *error_msg, int sock_fd)
+{
+    perror(error_msg);
+    close(sock_fd);
+    exit(EXIT_FAILURE);
+}
+
+void clear_memory(void *buf)
+{
+    bzero(buf, sizeof(buf));
 }
