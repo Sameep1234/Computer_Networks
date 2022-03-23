@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
             printf("EOF Recieved!\n");
             break;
         }
-        fwrite(buf, 1, MAX_LINE - 1, fp);
+        fwrite(buf, 1, bytes, fp);
         // printf("Total Bytes Read: %d\n", total_bytes);
         bzero(buf, MAX_LINE);
     }

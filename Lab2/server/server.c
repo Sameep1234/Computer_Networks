@@ -77,6 +77,7 @@ int main()
                     struct timespec t;
                     t.tv_nsec = 100000L;
                     nanosleep((const struct timespec *)&t, NULL);
+                    
                     loop_count++;
                     bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
                     buf[MAX_LINE - 1] = '\0';
@@ -88,10 +89,11 @@ int main()
                     printf("Bytes Send: %d\n", bytes_read);
                     // printf("BUF CONTENTS: %s\n", buf);
                     total_bytes += bytes_read;
-                    if (sendto(s, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0) // Send the read data over the socket
+                    if (sendto(s, buf, bytes_read, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0) // Send the read data over the socket
                     {
                         error_handler("send error");
                     }
+            
                     bzero(buf, MAX_LINE); // Erase the previous data
                 }
             }
