@@ -1,4 +1,3 @@
-/* AU1940177 Kairavi Shah */
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
