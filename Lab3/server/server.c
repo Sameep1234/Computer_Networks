@@ -11,6 +11,32 @@
 #define SERVER_PORT 8080
 #define MAX_LINE BUFSIZ
 
+struct File_info_and_data
+{
+    uint8_t type;
+    uint16_t sequence_number;
+    uint8_t filename_size;
+    char *filename;
+    uint32_t file_size;
+    uint16_t block_size;
+    char *data;
+};
+
+struct Data
+{
+    uint8_t type;
+    uint16_t sequence_number;
+    uint16_t block_size;
+    char *data;
+};
+
+struct File_not_found
+{
+    uint8_t type;
+    uint8_t filename_size;
+    char *filename;
+};
+
 /* Error Function */
 void error_handler(char *error_msg)
 {
@@ -20,6 +46,12 @@ void error_handler(char *error_msg)
 
 int main()
 {
+    struct File_info_and_data fid = {.type = 2, .sequence_number = 5, .filename_size = 10, .filename = "sample.mp4", .file_size = 10, .block_size = MAX_LINE, .data = buf};
+
+    struct Data data = {.type = 3, .sequence_number = 5, .block_size = MAX_LINE, .data = buf};
+
+    struct File_not_found fnf = {.type=4, .filename_size = 10, .filename = "sample.mp4"};
+
     /* Defining required variables */
     struct sockaddr_storage clientaddr;
     char *fileName = "sample.mp4";
@@ -75,8 +107,8 @@ int main()
                 while (!feof(fp))
                 {
                     /* In our case the optimal delay is 0.001s */
-                    /* 
-                        But to show while transferring we are streaming, 
+                    /*
+                        But to show while transferring we are streaming,
                         we chose delay = 0.01s
                     */
                     struct timespec t;
@@ -105,7 +137,7 @@ int main()
 
             printf("Total Bytes sent: %d\n", total_bytes);
             printf("Loop Count: %d\n", loop_count);
-            /* Close the file. */  
+            /* Close the file. */
             fclose(fp);
 
             /* Sending "BYE" to indicate EOF. */

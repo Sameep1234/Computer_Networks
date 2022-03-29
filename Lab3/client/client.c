@@ -11,6 +11,20 @@
 #define MAX_LINE BUFSIZ
 #define IP_ADDRESS "127.0.0.1"
 
+struct File_request
+{
+    uint8_t type;
+    uint8_t filename_size;
+    char *filename;
+};
+
+struct ACK
+{
+    uint8_t type;
+    uint8_t num_sequences;
+    uint16_t *sequence_no;
+};
+
 void error_handler(char *error_msg)
 {
     perror(error_msg);
@@ -19,6 +33,11 @@ void error_handler(char *error_msg)
 
 int main(int argc, char *argv[])
 {
+    // Initialize the structures
+
+    struct File_request fr = {.type = 0, .filename_size = 10, .filename = "sample.mp4"};
+    uint16_t temp_array = {1, 2, 3 ,4, 5};
+    struct ACK _ack = {.type = 1, .num_sequences = 5, .sequence_no = temp_array};
     /* Defining required variables */
     struct hostent *hp;
     struct sockaddr_in sin;
@@ -97,7 +116,7 @@ int main(int argc, char *argv[])
     }
     printf("Total Bytes Read: %d\n", total_bytes);
     printf("Loop Count: %d\n", loop_count);
-    /* Close the file. */    
+    /* Close the file. */
     fclose(fp);
     return 0;
 }
