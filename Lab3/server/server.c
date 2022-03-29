@@ -46,12 +46,6 @@ void error_handler(char *error_msg)
 
 int main()
 {
-    struct File_info_and_data fid = {.type = 2, .sequence_number = 5, .filename_size = 10, .filename = "sample.mp4", .file_size = 10, .block_size = MAX_LINE, .data = buf};
-
-    struct Data data = {.type = 3, .sequence_number = 5, .block_size = MAX_LINE, .data = buf};
-
-    struct File_not_found fnf = {.type=4, .filename_size = 10, .filename = "sample.mp4"};
-
     /* Defining required variables */
     struct sockaddr_storage clientaddr;
     char *fileName = "sample.mp4";
@@ -60,6 +54,12 @@ int main()
     char buf[MAX_LINE];
     int s, new_s, b, len;
     FILE *fp;
+
+    struct File_info_and_data fid = {.type = 2, .sequence_number = 5, .filename_size = 10, .filename = "sample.mp4", .file_size = 10, .block_size = MAX_LINE, .data = buf};
+
+    struct Data data = {.type = 3, .sequence_number = 5, .block_size = MAX_LINE, .data = buf};
+
+    struct File_not_found fnf = {.type = 4, .filename_size = 10, .filename = "sample.mp4"};
 
     /* Clearing the memory */
     bzero((char *)&sin, sizeof(sin));
