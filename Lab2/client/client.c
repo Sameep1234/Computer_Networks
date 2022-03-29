@@ -1,21 +1,18 @@
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#define SERVER_PORT 8080
-#define MAX_LINE BUFSIZ
-#define IP_ADDRESS "127.0.0.1"
+#include "../header.h"
 
-void error_handler(char *error_msg)
-{
-    perror(error_msg);
-    exit(EXIT_FAILURE);
-}
+void error_handler(char *error_msg, int sock_fd);
+
+char *command_line(int argc, char *argv[], char *host);
+
+void clear_memory(void *buf);
+
+struct sockaddr_in initialize(struct sockaddr_in sin, struct hostent *hp, char *host);
+
+int socket_creation(struct sockaddr_in sin);
+
+void send_to_server(char *new_buf, int sock_fd, struct sockaddr_in sin);
+
+void recv_file_from_server(FILE *fp, char *buf, char *fileName, int sock_fd, struct sockaddr_storage servaddr, socklen_t servaddr_len);
 
 int main(int argc, char *argv[])
 {
@@ -26,78 +23,107 @@ int main(int argc, char *argv[])
     char *fileName = "sample.mp4";
     socklen_t servaddr_len = sizeof(struct sockaddr);
     char buf[MAX_LINE];
-    int s, len, c, r;
+    char new_buf[MAX_LINE];
     char *host;
     FILE *fp;
-    int bytes = 0;
-    char new_buf[MAX_LINE];
 
+    host = command_line(argc, argv, host);
+
+    sin = initialize(sin, hp, host);
+
+    int sock_fd = socket_creation(sin);
+
+    send_to_server(buf, sock_fd, sin);
+    
+    recv_file_from_server(fp, buf, fileName, sock_fd, servaddr, servaddr_len);
+
+    return 0;
+}
+
+void error_handler(char *error_msg, int sock_fd)
+{
+    perror(error_msg);
+    close(sock_fd);
+    exit(EXIT_FAILURE);
+}
+
+char *command_line(int argc, char *argv[], char *host)
+{
     if (argc == 2)
     {
         host = argv[1];
     }
     else
     {
-        error_handler("Argument Count Invalid!");
+        perror("Invalid Argument Count!");
+        exit(EXIT_FAILURE);
     }
-    /* Translate host name into peer’s IP address */
+    return host;
+}
+
+void clear_memory(void *buf)
+{
+    bzero(buf, sizeof(buf));
+}
+
+struct sockaddr_in initialize(struct sockaddr_in sin, struct hostent *hp, char *host)
+{
+    printf("%s\n", host);
     hp = gethostbyname(host);
+
     if (!hp)
     {
-        error_handler("Host entry Failed!");
+        perror("Host entry Failed!");
+        exit(EXIT_FAILURE);
     }
+    clear_memory(&sin);
 
-    /* Clearing the memory */
-    bzero((char *)&sin, sizeof(sin));
-
-    /*Prepare the sockaddr_in structure*/
     sin.sin_family = AF_INET;
     sin.sin_port = htons(SERVER_PORT);
 
-    /*Copy the address of host in hostent to sockaddr*/
     bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
+    return sin;
+}
 
-    /*Creating a socket*/
-    s = socket(PF_INET, SOCK_DGRAM, 0);
+int socket_creation(struct sockaddr_in sin)
+{
+    int s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s < 0)
     {
-        error_handler("Socket creation failure");
+        error_handler("Failed to create socket!", s);
     }
     puts("Socket created");
+    return s;
+}
 
-    /* Send "GET" directly to receive the video file. */
+void send_to_server(char *new_buf, int sock_fd, struct sockaddr_in sin)
+{
     strcpy(new_buf, "GET\0");
-    sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+    sendto(sock_fd, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+}
 
-    /* Open the file in wb mode. */
+void recv_file_from_server(FILE *fp, char *buf, char *fileName, int sock_fd, struct sockaddr_storage servaddr, socklen_t servaddr_len)
+{
     fp = fopen(fileName, "wb");
     if (NULL == fp)
     {
-        error_handler("Opening file failed!");
+        error_handler("Failed to open the file!", sock_fd);
     }
-
-    int total_bytes = 0, loop_count = 0;
-    /* Receive the data from the server and write it in file. */
-    while (bytes = recvfrom(s, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddr_len))
+    int total_bytes = 0, loop_count = 0, bytes = 0;
+    while ((bytes = recvfrom(sock_fd, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, &servaddr_len)))
     {
         total_bytes += bytes;
         loop_count++;
         printf("Bytes recieved: %d\n", bytes);
-
-        /* If receive "BYE" means EOF Recieved. */
         if (strcmp(buf, "BYE") == 0)
         {
             printf("EOF Recieved!\n");
             break;
         }
-        fwrite(buf, 1, bytes, fp);
-
-        /* Clearing the memory */
-        bzero(buf, MAX_LINE);
+        fwrite(buf, 1, MAX_LINE - 1, fp);
+        clear_memory(buf);
     }
     printf("Total Bytes Read: %d\n", total_bytes);
     printf("Loop Count: %d\n", loop_count);
-    /* Close the file. */    
     fclose(fp);
-    return 0;
 }
