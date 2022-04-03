@@ -25,6 +25,32 @@ struct ACK
     uint16_t *sequence_no;
 };
 
+struct File_info_and_data
+{
+    uint8_t type;
+    uint16_t sequence_number;
+    uint8_t filename_size;
+    char *filename;
+    uint32_t file_size;
+    uint16_t block_size;
+    char *data;
+};
+
+struct Data
+{
+    uint8_t type;
+    uint16_t sequence_number;
+    uint16_t block_size;
+    char *data;
+};
+
+struct File_not_found
+{
+    uint8_t type;
+    uint8_t filename_size;
+    char *filename;
+};
+
 void error_handler(char *error_msg)
 {
     perror(error_msg);
@@ -38,6 +64,7 @@ int main(int argc, char *argv[])
     struct File_request fr = {.type = 0, .filename_size = 10, .filename = "sample.mp4"};
     uint16_t temp_array = {1, 2, 3 ,4, 5};
     struct ACK _ack = {.type = 1, .num_sequences = 5, .sequence_no = temp_array};
+
     /* Defining required variables */
     struct hostent *hp;
     struct sockaddr_in sin;
@@ -50,6 +77,12 @@ int main(int argc, char *argv[])
     FILE *fp;
     int bytes = 0;
     char new_buf[MAX_LINE];
+
+    struct File_info_and_data fid = {.type = 2, .sequence_number = 5, .filename_size = 10, .filename = "sample.mp4", .file_size = 10, .block_size = MAX_LINE, .data = buf};
+
+    struct Data data = {.type = 3, .sequence_number = 5, .block_size = MAX_LINE, .data = buf};
+
+    struct File_not_found fnf = {.type = 4, .filename_size = 10, .filename = "sample.mp4"};
 
     if (argc == 2)
     {
