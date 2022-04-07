@@ -114,16 +114,12 @@ void recv_from_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr
                 clear_memory(buf);
                 break;
             }
-            else if (errno == EAGAIN)
+            else if (errno == EINTR)
             {
                 printf("ACK Not Recieved\n");
                 bzero(buf, MAX_LINE);
                 strcpy(buf, "Hi\0");
-
-                if (sendto(sock_fd, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
-                {
-                    error_handler("Failed to send through socket!", sock_fd);
-                }
+                send_file_to_client(buf, sock_fd, clientaddr);
             }
         }
     }
