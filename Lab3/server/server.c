@@ -74,9 +74,11 @@ int socket_creation(struct sockaddr_in sin)
     puts("Socket created");
 
     struct timeval tv;
-    tv.tv_sec = 1; // Timeout for 1 sec.
-    tv.tv_usec = 0;
-    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+    tv.tv_sec = 1;
+    if(setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
+    {
+        error_handler("Timeout Setting Failed!", s);
+    }
 
     int b = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     if (b < 0)
