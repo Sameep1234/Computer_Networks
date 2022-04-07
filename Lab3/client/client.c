@@ -27,11 +27,10 @@ void send_to_server(char *new_buf, int sock_fd, struct sockaddr_in sin);
 void recv_file_from_server(char *buf, int sock_fd, struct sockaddr_storage servaddr, socklen_t servaddr_len, struct sockaddr_in sin);
 int main(int argc, char *argv[])
 {
-    /* Defining required variables */
     struct hostent *hp;
     struct sockaddr_in sin;
     struct sockaddr_storage servaddr;
-    // char *fileName = "sample.mp4";
+
     socklen_t servaddr_len = sizeof(struct sockaddr);
     char buf[MAX_LINE];
     char new_buf[MAX_LINE];
@@ -115,32 +114,27 @@ void send_to_server(char *new_buf, int sock_fd, struct sockaddr_in sin)
 
 void recv_file_from_server(char *buf, int sock_fd, struct sockaddr_storage servaddr, socklen_t servaddr_len, struct sockaddr_in sin)
 {
-    // fp = fopen(fileName, "wb");
-    //  if (NULL == fp)
-    //  {
-    //      error_handler("Failed to open the file!", sock_fd);
-    //  }
     int total_bytes = 0, loop_count = 0, bytes = 0;
-    
-    bytes = recvfrom(sock_fd, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, &servaddr_len);
-    
-        // total_bytes += bytes;
-        // loop_count++;
-        // printf("Bytes recieved: %d\n", bytes);
-        // if (strcmp(buf, "BYE") == 0)
-        // {
-        //     printf("EOF Recieved!\n");
-        //     break;
-        // }
-        //fwrite(buf, 1, MAX_LINE - 1, fp);
-        printf("Block 1 : %s\n",buf);
-        clear_memory(buf);
-       
-        strcpy(buf,"ACK\0");
-        sendto(sock_fd, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+    int temp = 0;
+    while (1)
+    {
+        bytes = recvfrom(sock_fd, buf, sizeof(buf), 0, (struct sockaddr *)&servaddr, &servaddr_len);
 
-    
-    // printf("Total Bytes Read: %d\n", total_bytes);
-    // printf("Loop Count: %d\n", loop_count);
-    // fclose(fp);
+        printf("Block 1 : %s\n", buf);
+        clear_memory(buf);
+
+        printf("Before Sleep\n");
+        if (temp == 0)
+        {
+            struct timespec t;
+            t.tv_sec = 2;
+            t.tv_nsec = 0;
+            nanosleep((const struct timespec *)&t, NULL);
+            temp = 1;
+        }
+
+        strcpy(buf, "ACK\0");
+        printf("Sending ACK after sleep\n");
+        sendto(sock_fd, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+    }
 }

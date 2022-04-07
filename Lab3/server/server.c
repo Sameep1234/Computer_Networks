@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <time.h>
+#include <errno.h>
 #define SERVER_PORT 8080
 #define MAX_LINE BUFSIZ
 #define IP_ADDRESS "127.0.0.1"
@@ -24,16 +25,11 @@ void recv_from_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr
 
 void send_file_to_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr);
 
-// void send_eof(char *buf, int sock_fd, struct sockaddr_storage clientaddr);
-
 int main()
 {
-    /* Defining required variables */
     struct sockaddr_storage clientaddr;
-    // char *fileName = "sample.mp4";
     struct sockaddr_in sin;
     char buf[MAX_LINE];
-    // FILE *fp;
 
     sin = initialize(sin);
     int sock_fd = socket_creation(sin);
@@ -77,6 +73,11 @@ int socket_creation(struct sockaddr_in sin)
     }
     puts("Socket created");
 
+    struct timeval tv;
+    tv.tv_sec = 1; // Timeout for 1 sec.
+    tv.tv_usec = 0;
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+
     int b = bind(s, (struct sockaddr *)&sin, sizeof(sin));
     if (b < 0)
     {
@@ -91,29 +92,38 @@ void recv_from_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr
 {
     int len;
     socklen_t clientaddr_len = sizeof(clientaddr);
+
     while ((len = recvfrom(sock_fd, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
     {
-        if (strcmp(buf, "GET") == 0)
+        if (len > 0 && strcmp(buf, "GET") == 0)
         {
             printf("%s\n", buf);
             clear_memory(buf);
             send_file_to_client(buf, sock_fd, clientaddr);
             clear_memory(buf);
         }
-        if (strcmp(buf, "ACK") == 0)
+        while (1)
         {
-            printf("%s\n", buf);
-            clear_memory(buf);
-            
-        }
-        // fp = fopen(fileName, "rb");
-        //  if (fp == NULL)
-        //  {
-        //      error_handler("Failed to open file!", sock_fd);
-        //  }
+            len = recvfrom(sock_fd, buf, MAX_LINE, MSG_DONTWAIT, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
 
-        
-        
+            if (len > 0 && strcmp(buf, "ACK") == 0)
+            {
+                printf("%s\n", buf);
+                clear_memory(buf);
+                break;
+            }
+            else if (errno == EAGAIN)
+            {
+                printf("ACK Not Recieved\n");
+                bzero(buf, MAX_LINE);
+                strcpy(buf, "Hi\0");
+
+                if (sendto(sock_fd, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                {
+                    error_handler("Failed to send through socket!", sock_fd);
+                }
+            }
+        }
     }
 }
 
@@ -121,47 +131,11 @@ void send_file_to_client(char *buf, int sock_fd, struct sockaddr_storage clienta
 {
     int loop_count = 0, bytes_read = 0, total_bytes = 0;
     socklen_t clientaddr_len = sizeof(clientaddr);
-
-    // while (!feof(fp))
-    // {
-    //     struct timespec t;
-    //     t.tv_nsec = 1000000L;
-    //     nanosleep((const struct timespec *)&t, NULL);
-
-    //     loop_count++;
-    //     bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
-    //     buf[MAX_LINE - 1] = '\0';
-
-    //     if (ferror(fp) != 0)
-    //     {
-    //         error_handler("Failed to read file!", sock_fd);
-    //     }
-    //     printf("Bytes Send: %d\n", bytes_read);
-
-    //     total_bytes += bytes_read;
     strcpy(buf, "Hi\0");
+
     if (sendto(sock_fd, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
     {
         error_handler("Failed to send through socket!", sock_fd);
     }
     clear_memory(buf);
-}
-
-// printf("Total Bytes sent: %d\n", total_bytes);
-// printf("Loop Count: %d\n", loop_count);
-
-// fclose(fp);
-
-// send_eof(buf, sock_fd, clientaddr);
-
-void send_eof(char *buf, int sock_fd, struct sockaddr_storage clientaddr)
-{
-    socklen_t clientaddr_len = sizeof(clientaddr);
-
-    printf("Sending Bye!\n");
-    strcpy(buf, "BYE\0");
-    if (sendto(sock_fd, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
-    {
-        error_handler("Failed to send \"BYE\"!", sock_fd);
-    }
 }
