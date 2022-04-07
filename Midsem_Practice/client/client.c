@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
             tokens = strtok(NULL, "+");
         }
         operation_result = args[0] + args[1];
+        printf("%d\n", operation_result);
     }
 
     return 0;

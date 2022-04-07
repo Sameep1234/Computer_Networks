@@ -10,222 +10,158 @@
 #include <time.h>
 #define SERVER_PORT 8080
 #define MAX_LINE BUFSIZ
+#define IP_ADDRESS "127.0.0.1"
 
-/*
-    THINGS TO CHANGE
-    FIleName
-    filename length
-    sequence number
-*/
+void error_handler(char *error_msg, int sock_fd);
 
-struct File_request
-{
-    uint8_t type;
-    uint8_t filename_size;
-    char *filename;
-};
+void clear_memory(void *buf);
 
-struct ACK
-{
-    uint8_t type;
-    uint8_t num_sequences;
-    uint16_t *sequence_no;
-};
+struct sockaddr_in initialize(struct sockaddr_in sin);
 
-struct File_info_and_data
-{
-    uint8_t type;
-    uint16_t sequence_number;
-    uint8_t filename_size;
-    char *filename;
-    uint32_t file_size;
-    uint16_t block_size;
-    char *data;
-};
+int socket_creation(struct sockaddr_in sin);
 
-struct Data
-{
-    uint8_t type;
-    uint16_t sequence_number;
-    uint16_t block_size;
-    char *data;
-};
+void recv_from_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr);
 
-struct File_not_found
-{
-    uint8_t type;
-    uint8_t filename_size;
-    char *filename;
-};
+void send_file_to_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr);
 
-/* Error Function */
-void error_handler(char *error_msg)
-{
-    perror(error_msg);
-    exit(EXIT_FAILURE);
-}
+// void send_eof(char *buf, int sock_fd, struct sockaddr_storage clientaddr);
 
 int main()
 {
     /* Defining required variables */
     struct sockaddr_storage clientaddr;
-    char *fileName = "sample.mp4";
-    socklen_t clientaddr_len = sizeof(clientaddr);
+    // char *fileName = "sample.mp4";
     struct sockaddr_in sin;
-    char buf[MAX_LINE], new_buf[MAX_LINE];
-    int s, new_s, b, len;
-    FILE *fp;
+    char buf[MAX_LINE];
+    // FILE *fp;
 
-    /* Initialize variables */
-    struct File_info_and_data fid =
-        {
-            .type = 2,
-            .sequence_number = 5,
-            .filename_size = 10,
-            .filename = "sample.mp4",
-            .file_size = 10,
-            .block_size = MAX_LINE,
-            .data = buf};
-
-    struct Data data =
-        {
-            .type = 3,
-            .sequence_number = 5,
-            .block_size = MAX_LINE,
-            .data = buf};
-
-    struct File_not_found fnf =
-        {
-            .type = 4,
-            .filename_size = 10,
-            .filename = "sample.mp4"};
-
-    struct File_request *fr;
-    uint16_t temp_array = {1, 2, 3, 4, 5};
-    struct ACK *_ack;
-
-    /* Clearing the memory */
-    bzero((char *)&sin, sizeof(sin));
-
-    /*Prepare the sockaddr_in structure*/
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = inet_addr("127.0.0.1");
-    sin.sin_port = htons(SERVER_PORT);
-
-    /* Creating socket */
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if (s < 0)
-    {
-        error_handler("socket creation failure");
-    }
-    puts("Socket created");
-
-    /* Binding the socket */
-    b = bind(s, (struct sockaddr *)&sin, sizeof(sin));
-    if (b < 0)
-    {
-        error_handler("bind error");
-    }
-    puts("Bind done");
+    sin = initialize(sin);
+    int sock_fd = socket_creation(sin);
 
     while (1)
     {
-        int bytes_read = 0, total_bytes, loop_count = 0;
-        /* Receive File Request from client */
-        while ((len = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
-        {
-            fr = (struct File_request *)buf;
-            fid.filename = fr->filename;
-            fid.filename_size = fr->filename_size;
-
-            /* Calculate File Size */
-            FILE *fp = fopen(fr->filename, "rb");
-            fseek(fp, SEEK_END, 0);
-            fid.file_size = ftell(fp);
-            printf("File Size is: %d\n", fid.file_size);
-            rewind(fp);
-
-            /* Read only first time the first block of data from file. */
-            int bytes_read = fread(fid.data, 1, MAX_LINE - 1, fp);
-            if (bytes_read < 0)
-            {
-                error_handler("First File Read Failed!");
-            }
-            int bytes_send = 0;
-
-            if ((bytes_send = sendto(s, (const char *)&fid, sizeof(struct File_info_and_data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len)) < 0)
-            {
-                error_handler("FID Struct Failed!");
-            }
-
-            /* Set Sock Option for async timeout */
-            struct timespec t;
-            t.tv_nsec = 10000000L;
-            setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timespec));
-            int bytes_recieved = 0;
-            bzero(buf, MAX_LINE);
-            bzero(new_buf, MAX_LINE);
-            if((bytes_recieved = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) < 0)
-            {
-            }
-        }
+        recv_from_client(buf, sock_fd, clientaddr);
     }
     return 0;
 }
 
-// if (strcmp(buf, "GET") == 0)
-//             {
-//                 printf("%s\n", buf);
-//                 /* Clearing the memory */
-//                 bzero(buf, sizeof(buf));
-//                 /* Opening the file in rb mode. */
-//                 fp = fopen(fileName, "rb");
-//                 if (fp == NULL)
-//                 {
-//                     error_handler("Opening file failed!");
-//                 }
+void error_handler(char *error_msg, int sock_fd)
+{
+    perror(error_msg);
+    close(sock_fd);
+    exit(EXIT_FAILURE);
+}
 
-//                 /* Continue the loop until all the bytes of the file is read. */
-//                 while (!feof(fp))
-//                 {
-//                     /* In our case the optimal delay is 0.001s */
-//                     /*
-//                         But to show while transferring we are streaming,
-//                         we chose delay = 0.01s
-//                     */
-//                     struct timespec t;
-//                     t.tv_nsec = 10000000L;
-//                     nanosleep((const struct timespec *)&t, NULL);
+void clear_memory(void *buf)
+{
+    bzero(buf, sizeof(buf));
+}
 
-//                     loop_count++;
-//                     bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
-//                     buf[MAX_LINE - 1] = '\0';
-//                     if (ferror(fp) != 0)
-//                     {
-//                         error_handler("Error in reading file");
-//                     }
-//                     printf("Bytes Send: %d\n", bytes_read);
-//                     total_bytes += bytes_read;
+struct sockaddr_in initialize(struct sockaddr_in sin)
+{
+    clear_memory(&sin);
 
-//                     /* Send the read data over the socket to client. */
-//                     if (sendto(s, buf, bytes_read, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
-//                     {
-//                         error_handler("send error");
-//                     }
-//                     /* Clearing the memory */
-//                     bzero(buf, MAX_LINE);
-//                 }
-//             }
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+    sin.sin_port = htons(SERVER_PORT);
 
-//             printf("Total Bytes sent: %d\n", total_bytes);
-//             printf("Loop Count: %d\n", loop_count);
-//             /* Close the file. */
-//             fclose(fp);
+    return sin;
+}
 
-//             /* Sending "BYE" to indicate EOF. */
-//             printf("Sending Bye!\n");
-//             strcpy(buf, "BYE\0");
-//             if (sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
-//             {
-//                 error_handler("error sending bye!");
-//             }
+int socket_creation(struct sockaddr_in sin)
+{
+    int s = socket(PF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        error_handler("Failed to create socket!", s);
+    }
+    puts("Socket created");
+
+    int b = bind(s, (struct sockaddr *)&sin, sizeof(sin));
+    if (b < 0)
+    {
+        error_handler("Failed to bind socket!", s);
+    }
+    puts("Bind done");
+
+    return s;
+}
+
+void recv_from_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr)
+{
+    int len;
+    socklen_t clientaddr_len = sizeof(clientaddr);
+    while ((len = recvfrom(sock_fd, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
+    {
+        if (strcmp(buf, "GET") == 0)
+        {
+            printf("%s\n", buf);
+            clear_memory(buf);
+            send_file_to_client(buf, sock_fd, clientaddr);
+            clear_memory(buf);
+        }
+        if (strcmp(buf, "ACK") == 0)
+        {
+            printf("%s\n", buf);
+            clear_memory(buf);
+            
+        }
+        // fp = fopen(fileName, "rb");
+        //  if (fp == NULL)
+        //  {
+        //      error_handler("Failed to open file!", sock_fd);
+        //  }
+
+        
+        
+    }
+}
+
+void send_file_to_client(char *buf, int sock_fd, struct sockaddr_storage clientaddr)
+{
+    int loop_count = 0, bytes_read = 0, total_bytes = 0;
+    socklen_t clientaddr_len = sizeof(clientaddr);
+
+    // while (!feof(fp))
+    // {
+    //     struct timespec t;
+    //     t.tv_nsec = 1000000L;
+    //     nanosleep((const struct timespec *)&t, NULL);
+
+    //     loop_count++;
+    //     bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+    //     buf[MAX_LINE - 1] = '\0';
+
+    //     if (ferror(fp) != 0)
+    //     {
+    //         error_handler("Failed to read file!", sock_fd);
+    //     }
+    //     printf("Bytes Send: %d\n", bytes_read);
+
+    //     total_bytes += bytes_read;
+    strcpy(buf, "Hi\0");
+    if (sendto(sock_fd, buf, sizeof(buf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+    {
+        error_handler("Failed to send through socket!", sock_fd);
+    }
+    clear_memory(buf);
+}
+
+// printf("Total Bytes sent: %d\n", total_bytes);
+// printf("Loop Count: %d\n", loop_count);
+
+// fclose(fp);
+
+// send_eof(buf, sock_fd, clientaddr);
+
+void send_eof(char *buf, int sock_fd, struct sockaddr_storage clientaddr)
+{
+    socklen_t clientaddr_len = sizeof(clientaddr);
+
+    printf("Sending Bye!\n");
+    strcpy(buf, "BYE\0");
+    if (sendto(sock_fd, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+    {
+        error_handler("Failed to send \"BYE\"!", sock_fd);
+    }
+}
