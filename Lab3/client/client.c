@@ -1,18 +1,4 @@
-/* AU1940177 Kairavi Shah */
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <errno.h>
-#include <time.h>
-#define SERVER_PORT 8080
-#define MAX_LINE BUFSIZ
-#define IP_ADDRESS "127.0.0.1"
+#include "../header.h"
 
 void error_handler(char *error_msg)
 {
@@ -34,6 +20,19 @@ int main(int argc, char *argv[])
     FILE *fp;
     int bytes = 0;
     char new_buf[MAX_LINE];
+
+    /* Required Structs */
+    struct File_request fr =
+        {
+            .type = 0,
+            .filename = fileName,
+            .filename_size = strlen(fileName)};
+
+    struct ACK ack = {.type = 1};
+
+    struct File_info_and_data fid;
+    struct Data data;
+    struct File_not_found fnf;
 
     if (argc == 2)
     {
@@ -66,9 +65,11 @@ int main(int argc, char *argv[])
         error_handler("Socket creation failure");
     }
     puts("Socket created");
-    strcpy(new_buf, "GET\0");
-    sendto(s, new_buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
-
+    if(sendto(s, (const char *) &fr, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in)) < 0)
+    {
+        error_handler("ending Failed!");
+    }
+    printf("Send\n");
     int temp = 0;
     while (1)
     {
@@ -78,14 +79,14 @@ int main(int argc, char *argv[])
         bzero(buf, MAX_LINE);
 
         printf("Before Sleep\n");
-        if (temp == 0)
+        /* if (temp == 0)
         {
             struct timespec t;
             t.tv_sec = 3;
             // t.tv_nsec = 500000000L;
             nanosleep((const struct timespec *)&t, NULL);
             temp = 1;
-        }
+        } */
 
         strcpy(buf, "ACK\0");
         printf("Sending ACK after sleep\n");

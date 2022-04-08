@@ -1,17 +1,4 @@
-/* AU1940177 Kairavi Shah */
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <time.h>
-#include <errno.h>
-#define SERVER_PORT 8080
-#define MAX_LINE BUFSIZ
+#include "../header.h"
 
 void error_handler(char *error_msg)
 {
@@ -30,6 +17,12 @@ int main()
     int s, new_s, b, len;
     FILE *fp;
     bzero((char *)&sin, sizeof(sin));
+
+    struct File_request fr;
+    struct ACK ack;
+    struct File_info_and_data fid;
+    struct Data data;
+    struct File_not_found fnf;
 
     /*Prepare the sockaddr_in structure*/
     sin.sin_family = AF_INET; // AF_INET is an address family that is used to designate the type of addresses that your socket can communicate with
@@ -65,7 +58,10 @@ int main()
 
         while ((len = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
         {
-            if (len > 0 && strcmp(buf, "GET") == 0)
+            bcopy(buf, &fr, strlen(buf));
+            printf("Filename: %s\n", fr.filename);
+            
+            /* if (len > 0 && strcmp(buf, "GET") == 0)
             {
                 printf("%s\n", buf);
                 bzero(buf, MAX_LINE);
@@ -89,7 +85,7 @@ int main()
                     strcpy(buf, "Hi\0");
                     sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len);
                 }
-            }
+            } */
         }
     }
     return 0;
