@@ -17,14 +17,14 @@ struct File_request
 {
     uint8_t type;
     uint8_t filename_size;
-    char *filename;
+    char filename[100];
 };
 
 struct ACK
 {
     uint8_t type;
     uint8_t num_sequences;
-    uint16_t *sequence_no;
+    uint16_t sequence_no[100];
 };
 
 struct File_info_and_data
@@ -32,10 +32,10 @@ struct File_info_and_data
     uint8_t type;
     uint16_t sequence_number;
     uint8_t filename_size;
-    char *filename;
+    char filename[100];
     uint32_t file_size;
     uint16_t block_size;
-    char *data;
+    char data[BUFSIZ];
 };
 
 struct Data
@@ -43,12 +43,12 @@ struct Data
     uint8_t type;
     uint16_t sequence_number;
     uint16_t block_size;
-    char *data;
+    char data[BUFSIZ];
 };
 
 struct File_not_found
 {
     uint8_t type;
     uint8_t filename_size;
-    char *filename;
+    char filename[100];
 };
