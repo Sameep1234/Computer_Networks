@@ -79,6 +79,7 @@ int main()
             {
                 while (!feof(fp))
                 {
+                    bzero(&data, sizeof(struct Data));
                     if (temp == 0)
                     {
                         temp = 1;
@@ -109,32 +110,8 @@ int main()
                         {
                             error_handler("Sending FID Failed!");
                         }
-                    }
-                    else
-                    {
-                        loop_count++;
-                        bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
-                        buf[MAX_LINE - 1] = '\0';
 
-                        if (ferror(fp) != 0)
-                        {
-                            error_handler("Failed to read file!");
-                        }
-                        printf("Bytes Send: %d\n", bytes_read);
-
-                        total_bytes += bytes_read;
-
-                        data.block_size = BUFSIZ;
-                        data.sequence_number = seq_num;
-                        strcpy(data.data, buf);
-
-                        seq_num ^= 1;
-
-                        if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
-                        {
-                            error_handler("Failed to send through socket!");
-                        }
-                        bzero(buf, MAX_LINE);
+                        // Wait for ack
                         while (1)
                         {
                             len = recvfrom(s, ack, sizeof(struct ACK), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
@@ -156,14 +133,84 @@ int main()
                             }
                         }
                     }
+                    else
+                    {
+                        loop_count++;
+                        bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+                        buf[MAX_LINE - 1] = '\0';
+
+                        if (ferror(fp) != 0)
+                        {
+                            error_handler("Failed to read file!");
+                        }
+                        // printf("Bytes Send: %d\n", bytes_read);
+
+                        total_bytes += bytes_read;
+
+                        data.block_size = BUFSIZ;
+                        data.sequence_number = seq_num;
+                        strcpy(data.data, buf);
+
+                        seq_num ^= 1;
+
+                        if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                        {
+                            error_handler("Failed to send through socket!");
+                        }
+                        bzero(buf, MAX_LINE);
+                        while (1)
+                        {
+                            len = recvfrom(s, ack, sizeof(struct ACK), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
+
+                            if (len > 0 && ack->sequence_no[0] == data.sequence_number)
+                            {
+                                printf("ACK for squence number %d recieved\n", data.sequence_number);
+                                bzero(buf, MAX_LINE);
+                                break;
+                            }
+                            else if (errno == EAGAIN)
+                            {
+                                printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", fid.sequence_number);
+
+                                if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                                {
+                                    error_handler("Failed to send after ACK not recieved!");
+                                }
+                            }
+                        }
+                    }
                 }
                 printf("Sending Bye!\n");
+                bzero(&data, sizeof(struct Data));
                 data.block_size = BUFSIZ;
+                printf("Sequence number final is: %d\n", seq_num);
                 data.sequence_number = seq_num;
                 strcpy(data.data, "BYE\0");
+                printf("%s\n", data.data);
                 if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                 {
                     error_handler("Failed to send \" BYE \"!");
+                }
+
+                while (1)
+                {
+                    len = recvfrom(s, ack, sizeof(struct ACK), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
+
+                    if (len > 0 && ack->sequence_no[0] == data.sequence_number)
+                    {
+                        printf("ACK for squence number %d recieved\n", data.sequence_number);
+                        bzero(buf, MAX_LINE);
+                        break;
+                    }
+                    else if (errno == EAGAIN)
+                    {
+                        printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", data.sequence_number);
+
+                        if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                        {
+                            error_handler("Failed to send after ACK not recieved!");
+                        }
+                    }
                 }
             }
         }

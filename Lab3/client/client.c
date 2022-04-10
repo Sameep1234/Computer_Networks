@@ -87,6 +87,13 @@ int main(int argc, char *argv[])
 
         if (prev_seq_no != fid->sequence_number)
         {
+            printf("Values is: %s\n\n\n", fid->data);
+            if (fid->data[0] == ' ' && fid->data[1] == 'B' && fid->data[2] == 'Y' && fid->data[3] == 'E')
+            {
+                printf("EOF Recieved!\n");
+                break;
+            }
+
             ack.type = 1;
             ack.num_sequences = 1;
             ack.sequence_no[0] = fid->sequence_number;
@@ -95,13 +102,7 @@ int main(int argc, char *argv[])
                 error_handler("Sending ACK Failed!");
             }
 
-            printf("Ack sent for sequence number %d. Writing to file now!\n", fid->sequence_number);
-
-            if (strcmp(fid->data, "BYE") == 0)
-            {
-                printf("EOF Recieved!\n");
-                break;
-            }
+            printf("Ack sent for sequence number %d. Writing to file now!\n", ack.sequence_no[0]);
 
             fwrite(fid->data, 1, MAX_LINE - 1, fp);
             prev_seq_no = fid->sequence_number;
@@ -119,6 +120,5 @@ int main(int argc, char *argv[])
             printf("Ack again sent for sequence number %d. Not writing to file.\n", fid->sequence_number);
         }
     }
-
     return 0;
 }
