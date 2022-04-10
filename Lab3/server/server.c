@@ -11,6 +11,7 @@ int main()
     /* Defining required variables */
     struct sockaddr_storage clientaddr;
     char *fileName = "sample.mp4";
+    int file_size = 0;
     socklen_t clientaddr_len = sizeof(clientaddr);
     struct sockaddr_in sin;
     char buf[MAX_LINE];
@@ -38,7 +39,7 @@ int main()
     puts("Socket created");
 
     struct timeval tv;
-    tv.tv_sec = 1;
+    tv.tv_sec = 1; // 1 sec timeout
     if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
     {
         error_handler("Timeout Setting Failed!");
@@ -56,6 +57,7 @@ int main()
     {
         int bytes_read = 0, total_bytes, loop_count = 0, temp = 0;
 
+        // Blocking recvfrom to get the file_request
         while ((len = recvfrom(s, fr, sizeof(*fr), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
         {
             printf("Filename: %s\n", fr->filename);
@@ -86,7 +88,7 @@ int main()
 
                         // Calculate size
                         fseek(fp, SEEK_END, 0);
-                        int file_size = ftell(fp);
+                        file_size = ftell(fp);
                         rewind(fp);
 
                         // Read data
@@ -126,7 +128,7 @@ int main()
                             {
                                 printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", fid.sequence_number);
 
-                                if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                                if (sendto(s, (struct File_info_and_data *)&fid, sizeof(struct File_info_and_data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                                 {
                                     error_handler("Failed to send after ACK not recieved!");
                                 }
@@ -170,7 +172,7 @@ int main()
                             }
                             else if (errno == EAGAIN)
                             {
-                                printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", fid.sequence_number);
+                                printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", data.sequence_number);
 
                                 if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                                 {
@@ -180,19 +182,26 @@ int main()
                         }
                     }
                 }
+                fclose(fp);
                 printf("Sending Bye!\n");
-                bzero(&data, sizeof(struct Data));
-                data.block_size = BUFSIZ;
+                bzero(&fid, sizeof(struct File_info_and_data));
+
+                fid.type = 2;
+                fid.filename_size = fr->filename_size;
+                strcpy(fid.filename, fr->filename);
+                fid.file_size = file_size;
+                fid.block_size = BUFSIZ;
+                fid.sequence_number = seq_num;
+                strcpy(fid.data, "BYE\0");
+
                 printf("Sequence number final is: %d\n", seq_num);
-                data.sequence_number = seq_num;
-                strcpy(data.data, "BYE\0");
-                printf("%s\n", data.data);
-                if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                printf("%s\n", fid.data);
+                if (sendto(s, (struct File_info_and_data *)&fid, sizeof(struct File_info_and_data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                 {
                     error_handler("Failed to send \" BYE \"!");
                 }
 
-                while (1)
+                /* while (1)
                 {
                     len = recvfrom(s, ack, sizeof(struct ACK), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
 
@@ -211,7 +220,7 @@ int main()
                             error_handler("Failed to send after ACK not recieved!");
                         }
                     }
-                }
+                } */
             }
         }
     }
