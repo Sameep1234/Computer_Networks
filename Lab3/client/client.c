@@ -63,29 +63,61 @@ int main(int argc, char *argv[])
         error_handler("Socket creation failure");
     }
     puts("Socket created");
-    if(sendto(s, (struct File_request *) &fr, (sizeof(fr)), 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in)) < 0)
+    if (sendto(s, (struct File_request *)&fr, (sizeof(fr)), 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in)) < 0)
     {
         error_handler("ending Failed!");
     }
-    printf("Send\n");
-    int temp = 0;
+    printf("File Request Sent. Waiting for Recieving file\n");
+    fp = fopen(fr.filename, "wb");
+    int prev_seq_no = 1;
+
     while (1)
     {
-        bytes = recvfrom(s, fid, sizeof(fid), 0, (struct sockaddr *)&servaddr, &servaddr_len);
-
-        if(fid->type == 4)
+        bytes = recvfrom(s, fid, sizeof(struct File_info_and_data), 0, (struct sockaddr *)&servaddr, &servaddr_len);
+        if (bytes < 0)
         {
-            printf("FileNotFound\n");
-        }
-        else if(fid->type = 2)
-        {
-            printf("%d\n", fid->sequence_number);
-            printf("%s\n", fid->data);
+            error_handler("Receving file failed!");
         }
 
-        strcpy(buf, "ACK\0");
-        printf("Sending ACK after sleep\n");
-        sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in));
+        if (fid->type == 4)
+        {
+            printf("File Not Found\n");
+            break;
+        }
+
+        if (prev_seq_no != fid->sequence_number)
+        {
+            ack.type = 1;
+            ack.num_sequences = 1;
+            ack.sequence_no[0] = fid->sequence_number;
+            if (sendto(s, (struct ACK *)&ack, sizeof(struct ACK), 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in)) < 0)
+            {
+                error_handler("Sending ACK Failed!");
+            }
+
+            printf("Ack sent for sequence number %d. Writing to file now!\n", fid->sequence_number);
+
+            if (strcmp(fid->data, "BYE") == 0)
+            {
+                printf("EOF Recieved!\n");
+                break;
+            }
+
+            fwrite(fid->data, 1, MAX_LINE - 1, fp);
+            prev_seq_no = fid->sequence_number;
+        }
+        else
+        {
+            ack.type = 1;
+            ack.num_sequences = 1;
+            ack.sequence_no[0] = fid->sequence_number;
+            if (sendto(s, (struct ACK *)&ack, sizeof(struct ACK), 0, (const struct sockaddr *)&sin, (socklen_t)sizeof(struct sockaddr_in)) < 0)
+            {
+                error_handler("Sending ACK Failed!");
+            }
+
+            printf("Ack again sent for sequence number %d. Not writing to file.\n", fid->sequence_number);
+        }
     }
 
     return 0;

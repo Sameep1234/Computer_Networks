@@ -19,7 +19,7 @@ int main()
     bzero((char *)&sin, sizeof(sin));
 
     struct File_request *fr = malloc(sizeof(struct File_request));
-    struct ACK ack;
+    struct ACK *ack = malloc(sizeof(struct ACK));
     struct File_info_and_data fid;
     struct Data data;
     struct File_not_found fnf;
@@ -54,7 +54,7 @@ int main()
 
     while (1)
     {
-        int bytes_read = 0, total_bytes, loop_count = 0;
+        int bytes_read = 0, total_bytes, loop_count = 0, temp = 0;
 
         while ((len = recvfrom(s, fr, sizeof(*fr), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len)) > 0)
         {
@@ -68,57 +68,102 @@ int main()
                 strcpy(fnf.filename, fr->filename);
                 fnf.filename_size = fr->filename_size;
 
-                if (sendto(s, (struct File_not_found *)&fnf, sizeof(fnf), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                if (sendto(s, (struct File_not_found *)&fnf, sizeof(struct File_not_found), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                 {
                     error_handler("Sending FNF Failed!");
                 }
+
+                continue;
             }
             else
             {
-                // Calculate size
-                fseek(fp, SEEK_END, 0);
-                int file_size = ftell(fp);
-                rewind(fp);
-
-                // Read data
-                bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
-                buf[MAX_LINE - 1] = '\0';
-
-                // Set Structure variables
-                fid.type = 2;
-                fid.sequence_number = seq_num;
-                fid.filename_size = fr->filename_size;
-                strcpy(fid.filename, fr->filename);
-                fid.file_size = file_size;
-                fid.block_size = BUFSIZ;
-                strcpy(fid.data, buf);
-
-                // Toggle seq_num
-                seq_num ^= 1;
-
-                //Send this structure
-                if (sendto(s, (struct File_info_and_data *) &fid, sizeof(fid), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                while (!feof(fp))
                 {
-                    error_handler("Sending FID Failed!");
+                    if (temp == 0)
+                    {
+                        temp = 1;
+
+                        // Calculate size
+                        fseek(fp, SEEK_END, 0);
+                        int file_size = ftell(fp);
+                        rewind(fp);
+
+                        // Read data
+                        bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+                        buf[MAX_LINE - 1] = '\0';
+
+                        // Set Structure variables
+                        fid.type = 2;
+                        fid.sequence_number = seq_num;
+                        fid.filename_size = fr->filename_size;
+                        strcpy(fid.filename, fr->filename);
+                        fid.file_size = file_size;
+                        fid.block_size = BUFSIZ;
+                        strcpy(fid.data, buf);
+
+                        // Toggle seq_num
+                        seq_num ^= 1;
+
+                        // Send this structure
+                        if (sendto(s, (struct File_info_and_data *)&fid, sizeof(struct File_info_and_data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                        {
+                            error_handler("Sending FID Failed!");
+                        }
+                    }
+                    else
+                    {
+                        loop_count++;
+                        bytes_read = fread(buf, 1, MAX_LINE - 1, fp);
+                        buf[MAX_LINE - 1] = '\0';
+
+                        if (ferror(fp) != 0)
+                        {
+                            error_handler("Failed to read file!");
+                        }
+                        printf("Bytes Send: %d\n", bytes_read);
+
+                        total_bytes += bytes_read;
+
+                        data.block_size = BUFSIZ;
+                        data.sequence_number = seq_num;
+                        strcpy(data.data, buf);
+
+                        seq_num ^= 1;
+
+                        if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                        {
+                            error_handler("Failed to send through socket!");
+                        }
+                        bzero(buf, MAX_LINE);
+                        while (1)
+                        {
+                            len = recvfrom(s, ack, sizeof(struct ACK), 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
+
+                            if (len > 0 && ack->sequence_no[0] == fid.sequence_number)
+                            {
+                                printf("ACK for squence number %d recieved\n", fid.sequence_number);
+                                bzero(buf, MAX_LINE);
+                                break;
+                            }
+                            else if (errno == EAGAIN)
+                            {
+                                printf("ACK for sequence number %d Not Recieved. Sending Frame again.\n", fid.sequence_number);
+
+                                if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
+                                {
+                                    error_handler("Failed to send after ACK not recieved!");
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-
-            while (1)
-            {
-                len = recvfrom(s, buf, MAX_LINE, 0, (struct sockaddr *)&clientaddr, (socklen_t *)&clientaddr_len);
-
-                if (len > 0 && strcmp(buf, "ACK") == 0)
+                printf("Sending Bye!\n");
+                data.block_size = BUFSIZ;
+                data.sequence_number = seq_num;
+                strcpy(data.data, "BYE\0");
+                if (sendto(s, (struct Data *)&data, sizeof(struct Data), 0, (const struct sockaddr *)&clientaddr, clientaddr_len) < 0)
                 {
-                    printf("%s\n", buf);
-                    bzero(buf, MAX_LINE);
-                    break;
-                }
-                else if (errno == EAGAIN)
-                {
-                    printf("ACK Not Recieved\n");
-                    bzero(buf, MAX_LINE);
-                    strcpy(buf, "Hi\0");
-                    sendto(s, buf, MAX_LINE - 1, 0, (const struct sockaddr *)&clientaddr, clientaddr_len);
+                    error_handler("Failed to send \" BYE \"!");
                 }
             }
         }
