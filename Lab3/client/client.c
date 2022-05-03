@@ -32,17 +32,17 @@ int main(int argc, char *argv[])
 
     struct File_info_and_data *fid = malloc(sizeof(struct File_info_and_data));
 
-    /* if (argc == 2)
+    if (argc == 2)
     {
         host = argv[1];
     }
     else
     {
         error_handler("Argument Count Invalid!");
-    } */
+    }
     /* translate host name into peer’s IP address */
     /* gethostbyname() returns a pointer to a hostent struct or NULL.*/
-    hp = gethostbyname("127.0.0.1");
+    hp = gethostbyname(host);
     if (!hp)
     {
         error_handler("Host entry Failed!");
