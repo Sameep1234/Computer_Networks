@@ -62,11 +62,13 @@ int main()
             handle_error("Send Failed", new_sockfd);
         }
 
-        if(recv(new_sockfd, buf, MAX_LINE, 0) < 0)
+        if (recv(new_sockfd, buf, MAX_LINE, 0) < 0)
         {
             handle_error("Station Recieving Failed!", new_sockfd);
         }
         printf("%s\n", buf);
+
+        FILE *fd = fopen("metadata.txt", "rb"); // Open the file in read only mode
     }
     return 0;
 }

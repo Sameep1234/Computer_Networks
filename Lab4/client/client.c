@@ -59,12 +59,12 @@ int main(int argc, char *argv[])
         char temp;
         scanf("%c", &temp);
         printf("\nRead Char: %c\n", temp);
-        
+
         bzero(buf, MAX_LINE);
         strcpy(buf, &temp);
         printf("Read Buf: %s\n", buf);
 
-        if(send(sockfd, buf, MAX_LINE, 0) < 0)
+        if (send(sockfd, buf, MAX_LINE, 0) < 0)
         {
             handle_error("Sending Station Number Failed!");
         }
