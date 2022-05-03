@@ -14,42 +14,40 @@
 #define SERVER_IP "127.0.0.1"
 #define MAX_PENDING 5
 
-struct File_request
+struct radio_stn_info_request
 {
     uint8_t type;
-    uint8_t filename_size;
-    char filename[100];
 };
 
-struct ACK
+struct site_info
 {
+
     uint8_t type;
-    uint8_t num_sequences;
-    uint16_t sequence_no[100];
+    uint8_t site_name_size;
+    char site_name[200];
+    uint8_t site_desc_size;
+    char site_desc[200];
+    uint8_t radio_stn_count;
+    radio_stn_list[2];
 };
 
-struct File_info_and_data
+struct radio_stn_info
 {
-    uint8_t type;
-    uint16_t sequence_number;
-    uint8_t filename_size;
-    char filename[100];
-    uint32_t file_size;
-    uint16_t block_size;
-    char data[BUFSIZ];
+    uint8_t radio_stn_number;
+    uint8_t radio_stn_name_size;
+    char radio_stn_name[200];
+    uint32_t multicast_address;
+    uint16_t data_port;
+    uint16_t info_port;
+    uint32_t bit_rate;
 };
-
-struct Data
+struct song_info
 {
-    uint8_t type;
-    uint16_t sequence_number;
-    uint16_t block_size;
-    char data[BUFSIZ];
-};
 
-struct File_not_found
-{
     uint8_t type;
-    uint8_t filename_size;
-    char filename[100];
+    uint8_t song_name_size;
+    char song_name[200];
+    uint16_t remaining_time_in_sec;
+    uint8_t next_song_name_size;
+    char next_song_name[200];
 };
